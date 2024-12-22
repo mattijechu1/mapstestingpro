@@ -38,12 +38,12 @@
                 }
 
                 data.forEach((row, index) => {
-                    const lat = parseFloat(row.Y); // Columna 'Y' (latitud)
+                   const lat = parseFloat(row.Y); // Columna 'Y' (latitud)
                     const lon = parseFloat(row.X); // Columna 'X' (longitud)
                     const name = row.LOCAL || `Punto ${index + 1}`; // Usar columna LOCAL o nombre genérico
-                    const direccion = row.DIRECCION || 'Dirección no disponible'; // Dirección desde la columna A
-                    const local = row.LOCAL|| '';
-                    const foto = row.FOTO|| ''; 
+                    const direccion = row.DIRECCIÓN || 'Dirección no disponible'; // Dirección desde la columna A
+                    const local = row.LOCAL|| 'No aplica';
+                    const foto = row.FOTO|| 'No disponible'; 
 
                     // Validar coordenadas
                     if (!isNaN(lat) && !isNaN(lon)) {
@@ -52,7 +52,11 @@
                             .bindPopup(`
                                 <strong>${name}</strong><br>
                                 Dirección: ${direccion}<br>
+                                Local: ${local}<br>
+                                Foto: ${foto}<br>
                                 Lat: ${lat}, Lon: ${lon}
+                                
+                                
                             `);
                     } else {
                         console.warn(`Coordenadas inválidas en fila ${index + 1}: ${JSON.stringify(row)}`);
