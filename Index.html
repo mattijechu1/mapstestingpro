@@ -38,26 +38,34 @@
                 }
 
                 data.forEach((row, index) => {
-                   const lat = parseFloat(row.Y); // Columna 'Y' (latitud)
+                    const lat = parseFloat(row.Y); // Columna 'Y' (latitud)
                     const lon = parseFloat(row.X); // Columna 'X' (longitud)
                     const name = row.LOCAL || `Punto ${index + 1}`; // Usar columna LOCAL o nombre genérico
                     const direccion = row.DIRECCIÓN || 'Dirección no disponible'; // Dirección desde la columna A
-                    const local = row.LOCAL|| 'No aplica';
-                    const foto = row.FOTO|| 'No disponible'; 
+                    const local = row.LOCAL || 'No aplica';
+                    const foto = row.FOTO || ''; // Obtener el enlace de la foto, si existe
 
                     // Validar coordenadas
                     if (!isNaN(lat) && !isNaN(lon)) {
+                        // Crear contenido del popup
+                        let popupContent = `
+                            <strong>${name}</strong><br>
+                            Dirección: ${direccion}<br>
+                            Local: ${local}<br>
+                            Lat: ${lat}, Lon: ${lon}
+                        `;
+
+                        // Si hay una foto válida, agregarla al contenido del popup
+                        if (foto) {
+                            popupContent += `
+                                <br><strong>Foto:</strong><br>
+                                <img src="${foto}" alt="Imagen del lugar" style="width: 200px; height: auto;">
+                            `;
+                        }
+
                         L.marker([lat, lon])
                             .addTo(map)
-                            .bindPopup(`
-                                <strong>${name}</strong><br>
-                                Dirección: ${direccion}<br>
-                                Local: ${local}<br>
-                                Foto: ${foto}<br>
-                                Lat: ${lat}, Lon: ${lon}
-                                
-                                
-                            `);
+                            .bindPopup(popupContent);
                     } else {
                         console.warn(`Coordenadas inválidas en fila ${index + 1}: ${JSON.stringify(row)}`);
                     }
