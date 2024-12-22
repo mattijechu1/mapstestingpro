@@ -23,7 +23,7 @@
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        // URL del archivo CSV (cambiar si es necesario)
+        // URL del archivo CSV de Google Sheets (cambiar si es necesario)
         const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQdwp2muQD8wzNNA4i87SOGyiEXNbLL0cFkwq3YlSiwEXjaq88kKc-mXFU-eFlLMwCoSufoKoOTT4eI/pub?output=csv';
 
         // Leer y procesar el CSV
@@ -37,28 +37,23 @@
                     return;
                 }
 
+                // Iterar sobre cada fila de datos y agregar marcadores en el mapa
                 data.forEach((row, index) => {
                     const lat = parseFloat(row.Y); // Columna 'Y'
                     const lon = parseFloat(row.X); // Columna 'X'
                     const name = row.LOCAL || `Punto ${index + 1}`; // Usar columna LOCAL o nombre genérico
-                    const imageUrl = row.Enlaces; // Columna 'Enlaces' con los enlaces de las imágenes
+                    const imageLink = row.Enlaces; // Tomar el enlace de la columna 'Enlaces'
 
                     // Validar coordenadas
                     if (!isNaN(lat) && !isNaN(lon)) {
-                        // Verificar si el enlace de la imagen es válido
-                        let popupContent = `<strong>${name}</strong><br>Lat: ${lat}, Lon: ${lon}`;
-                        
-                        if (imageUrl && imageUrl.trim() !== "") {
-                            // Aquí asumimos que los enlaces son URLs completas
-                            popupContent += `<br><img src="${imageUrl}" alt="Imagen" style="max-width: 200px; max-height: 200px;">`;
-                        } else {
-                            popupContent += `<br><i>No se encontró imagen.</i><br><a href="${imageUrl}" target="_blank">Ver enlace de imagen</a>`;
-                        }
-
-                        // Crear marcador con el popup
+                        // Crear el marcador y agregar la imagen del enlace
                         L.marker([lat, lon])
                             .addTo(map)
-                            .bindPopup(popupContent);
+                            .bindPopup(`
+                                <strong>${name}</strong><br>
+                                Lat: ${lat}, Lon: ${lon}<br>
+                                ${imageLink ? `<img src="${imageLink}" alt="Imagen" style="max-width: 200px; max-height: 200px;">` : 'No hay imagen disponible.'}
+                            `);
                     } else {
                         console.warn(`Coordenadas inválidas en fila ${index + 1}: ${JSON.stringify(row)}`);
                     }
