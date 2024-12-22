@@ -43,14 +43,24 @@
                     const name = row.LOCAL || `Punto ${index + 1}`; // Usar columna LOCAL o nombre genérico
                     const imageUrl = row.J; // Columna 'J' que tiene los enlaces de las imágenes
 
+                    // Verificar que los datos están siendo procesados correctamente
+                    console.log(`Procesando fila ${index + 1}:`, row);
+                    console.log(`Enlace de imagen: ${imageUrl}`);
+
                     // Validar coordenadas
                     if (!isNaN(lat) && !isNaN(lon)) {
                         // Formatear el enlace de Google Drive para mostrar la imagen
-                        const imageSrc = imageUrl ? imageUrl.replace('/view?usp=sharing', '/uc?export=view') : '';
+                        let imageSrc = '';
+                        if (imageUrl) {
+                            imageSrc = imageUrl.replace('/view?usp=sharing', '/uc?export=view');
+                        }
 
+                        // Verificar que la imagen se pueda mostrar
                         let popupContent = `<strong>${name}</strong><br>Lat: ${lat}, Lon: ${lon}`;
                         if (imageSrc) {
                             popupContent += `<br><img src="${imageSrc}" alt="Imagen" style="max-width: 200px; max-height: 200px;">`;
+                        } else {
+                            popupContent += `<br><i>No se encontró imagen.</i>`;
                         }
 
                         // Crear marcador con el popup
