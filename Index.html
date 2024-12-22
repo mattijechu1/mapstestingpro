@@ -45,29 +45,12 @@
 
                     // Validar coordenadas
                     if (!isNaN(lat) && !isNaN(lon)) {
-                        // Transformar el enlace de Google Drive (si es necesario)
-                        let imageSrc = '';
-                        if (imageUrl) {
-                            // Asegurarse de que el enlace es válido para una imagen pública
-                            imageSrc = imageUrl.replace('/view?usp=sharing', '/uc?export=view');
-
-                            // Verificar si la imagen se puede abrir en el navegador
-                            const imageTest = new Image();
-                            imageTest.src = imageSrc;
-
-                            imageTest.onload = function() {
-                                console.log(`Imagen cargada correctamente: ${imageSrc}`);
-                            };
-
-                            imageTest.onerror = function() {
-                                console.error(`No se pudo cargar la imagen desde el enlace: ${imageSrc}`);
-                            };
-                        }
-
-                        // Verificar que la imagen se pueda mostrar
+                        // Verificar si el enlace de la imagen es válido
                         let popupContent = `<strong>${name}</strong><br>Lat: ${lat}, Lon: ${lon}`;
-                        if (imageSrc) {
-                            popupContent += `<br><img src="${imageSrc}" alt="Imagen" style="max-width: 200px; max-height: 200px;">`;
+                        
+                        if (imageUrl && imageUrl.trim() !== "") {
+                            // Aquí asumimos que los enlaces son URLs completas
+                            popupContent += `<br><img src="${imageUrl}" alt="Imagen" style="max-width: 200px; max-height: 200px;">`;
                         } else {
                             popupContent += `<br><i>No se encontró imagen.</i><br><a href="${imageUrl}" target="_blank">Ver enlace de imagen</a>`;
                         }
@@ -88,3 +71,4 @@
     </script>
 </body>
 </html>
+
