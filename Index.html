@@ -41,7 +41,9 @@
                     const lat = parseFloat(row.Y); // Columna 'Y' (latitud)
                     const lon = parseFloat(row.X); // Columna 'X' (longitud)
                     const name = row.LOCAL || `Punto ${index + 1}`; // Usar columna LOCAL o nombre genérico
-                    const direccion = row.DIRECCIÓN || 'Dirección no disponible'; // Dirección desde la columna A
+                    const direccion = row.DIRECCION || 'Dirección no disponible'; // Dirección desde la columna A
+                    const local = row.LOCAL|| '';
+                    const foto = row.FOTO|| ''; 
 
                     // Validar coordenadas
                     if (!isNaN(lat) && !isNaN(lon)) {
@@ -64,4 +66,3 @@
     </script>
 </body>
 </html>
-
