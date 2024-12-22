@@ -37,36 +37,21 @@
                     return;
                 }
 
-                // Iterar sobre cada fila de datos y agregar marcadores en el mapa
                 data.forEach((row, index) => {
-                    const lat = parseFloat(row.Y); // Columna 'Y'
-                    const lon = parseFloat(row.X); // Columna 'X'
+                    const lat = parseFloat(row.Y); // Columna 'Y' (latitud)
+                    const lon = parseFloat(row.X); // Columna 'X' (longitud)
                     const name = row.LOCAL || `Punto ${index + 1}`; // Usar columna LOCAL o nombre genérico
-                    const imageLink = row.Enlaces; // Tomar el enlace de la columna 'Enlaces'
-
-                    // Verificar que el enlace de la imagen está presente
-                    console.log(`Imagen para el Punto ${index + 1}:`, imageLink); // Verificación en consola
+                    const direccion = row.DIRECCION || 'Dirección no disponible'; // Dirección desde la columna A
 
                     // Validar coordenadas
                     if (!isNaN(lat) && !isNaN(lon)) {
-                        // Validar que la URL no esté vacía
-                        if (imageLink && imageLink.trim() !== "") {
-                            L.marker([lat, lon])
-                                .addTo(map)
-                                .bindPopup(`
-                                    <strong>${name}</strong><br>
-                                    Lat: ${lat}, Lon: ${lon}<br>
-                                    <img src="${imageLink}" alt="Imagen" style="max-width: 200px; max-height: 200px;">
-                                `);
-                        } else {
-                            L.marker([lat, lon])
-                                .addTo(map)
-                                .bindPopup(`
-                                    <strong>${name}</strong><br>
-                                    Lat: ${lat}, Lon: ${lon}<br>
-                                    <p>No hay imagen disponible.</p>
-                                `);
-                        }
+                        L.marker([lat, lon])
+                            .addTo(map)
+                            .bindPopup(`
+                                <strong>${name}</strong><br>
+                                Dirección: ${direccion}<br>
+                                Lat: ${lat}, Lon: ${lon}
+                            `);
                     } else {
                         console.warn(`Coordenadas inválidas en fila ${index + 1}: ${JSON.stringify(row)}`);
                     }
