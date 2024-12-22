@@ -41,11 +41,11 @@
                     const lat = parseFloat(row.Y); // Columna 'Y'
                     const lon = parseFloat(row.X); // Columna 'X'
                     const name = row.LOCAL || `Punto ${index + 1}`; // Usar columna LOCAL o nombre genérico
-                    const imageUrl = row.J; // Columna 'J' que tiene los enlaces de las imágenes
+                    const imageUrl = row.Enlaces; // Columna 'Enlaces' con los enlaces de las imágenes
 
                     // Validar coordenadas
                     if (!isNaN(lat) && !isNaN(lon)) {
-                        // Transformar el enlace de Google Drive
+                        // Transformar el enlace de Google Drive (si es necesario)
                         let imageSrc = '';
                         if (imageUrl) {
                             // Asegurarse de que el enlace es válido para una imagen pública
@@ -88,4 +88,3 @@
     </script>
 </body>
 </html>
-
