@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa con Leaflet y Datos de Google Sheets</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+        #map { height: 600px; width: 100%; }
+    </style>
+</head>
+<body>
+    <h1>Mapa Dinámico con Leaflet y OSM</h1>
+    <div id="map"></div>
+
+    <script>
+        // Inicializar el mapa
+        const map = L.map('map').setView([-33.4489, -70.6693], 12); // Coordenadas iniciales (Santiago)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // URL del archivo CSV (cambiar si es necesario)
+        const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQdwp2muQD8wzNNA4i87SOGyiEXNbLL0cFkwq3YlSiwEXjaq88kKc-mXFU-eFlLMwCoSufoKoOTT4eI/pub?output=csv';
+
+        // Leer y procesar el CSV
+        Papa.parse(csvUrl, {
+            download: true,
+            header: true,
+            complete: function(results) {
+                const data = results.data; // Filas del CSV
+                if (data.length === 0) {
+                    console.error('El archivo CSV está vacío o no tiene datos válidos.');
+                    return;
+                }
+
+                data.forEach((row, index) => {
+                    const lat = parseFloat(row.Y); // Columna 'Y'
+                    const lon = parseFloat(row.X); // Columna 'X'
+                    const name = row.LOCAL || `Punto ${index + 1}`; // Usar columna LOCAL o nombre genérico
+                    const imageUrl = row.J; // Columna 'J' que tiene los enlaces de las imágenes
+
+                    // Validar coordenadas
+                    if (!isNaN(lat) && !isNaN(lon)) {
+                        // Formatear el enlace de Google Drive para mostrar la imagen
+                        const imageSrc = imageUrl ? imageUrl.replace('/view?usp=sharing', '/uc?export=view') : '';
+
+                        let popupContent = `<strong>${name}</strong><br>Lat: ${lat}, Lon: ${lon}`;
+                        if (imageSrc) {
+                            popupContent += `<br><img src="${imageSrc}" alt="Imagen" style="max-width: 200px; max-height: 200px;">`;
+                        }
+
+                        // Crear marcador con el popup
+                        L.marker([lat, lon])
+                            .addTo(map)
+                            .bindPopup(popupContent);
+                    } else {
+                        console.warn(`Coordenadas inválidas en fila ${index + 1}: ${JSON.stringify(row)}`);
+                    }
+                });
+            },
+            error: function(error) {
+                console.error('Error al procesar el CSV:', error);
+            }
+        });
+    </script>
+</body>
+</html>
