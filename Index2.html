@@ -7,8 +7,8 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <!-- Usar shpjs desde CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/shpjs/0.7.1/shp.min.js"></script>
+    <!-- Usar la librería shpjs -->
+    <script src="https://cdn.jsdelivr.net/npm/shpjs@0.7.1/dist/shp.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
         #map { height: 600px; width: 100%; }
@@ -105,6 +105,12 @@
                     };
                 })
             };
+
+            // Verificar si shpjs está correctamente cargado
+            if (typeof shp === 'undefined') {
+                console.error('shpjs no se ha cargado correctamente.');
+                return;
+            }
 
             // Usar shpjs para convertir el GeoJSON a SHP
             const zip = shp.write(geojson);
