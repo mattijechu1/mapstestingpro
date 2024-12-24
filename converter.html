@@ -7,8 +7,8 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <!-- Cargar la librería shp-write -->
-    <script src="https://unpkg.com/shp-write@latest/shpwrite.js"></script>
+    <!-- Usar la librería shpjs -->
+    <script src="https://cdn.jsdelivr.net/npm/shpjs@0.7.1/dist/shp.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
         #map { height: 600px; width: 100%; }
@@ -106,31 +106,21 @@
                 })
             };
 
-            // Verificar si shp-write se ha cargado correctamente
-            if (typeof shpwrite === 'undefined') {
-                console.error('shp-write no se ha cargado correctamente.');
+            // Verificar si shpjs está correctamente cargado
+            if (typeof shp === 'undefined') {
+                console.error('shpjs no se ha cargado correctamente.');
                 return;
             }
 
-            // Usar shp-write para convertir el GeoJSON a SHP
-            const zip = shpwrite.zip(geojson);
-
-            // Guardar el archivo SHP como un .zip
-            saveAs(zip, 'terrazas_providencia.zip');
+            // Usar shpjs para convertir el GeoJSON a SHP
+            try {
+                const zip = shp.write(geojson); // Generar el archivo .zip con el SHP
+                // Guardar el archivo SHP como un .zip
+                saveAs(zip, 'terrazas_providencia.zip');
+            } catch (error) {
+                console.error('Error al generar el archivo SHP:', error);
+            }
         });
-
-        <script>
-  // Verificar si la librería se cargó correctamente
-  const checkShpWrite = setInterval(function() {
-    if (typeof shpwrite !== 'undefined') {
-      console.log("shp-write cargado correctamente.");
-      clearInterval(checkShpWrite);
-    } else {
-      console.error("shp-write no se ha cargado.");
-    }
-  }, 1000); // Verifica cada segundo
-</script>
-
     </script>
 </body>
 </html>
