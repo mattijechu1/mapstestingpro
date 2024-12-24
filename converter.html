@@ -3,78 +3,121 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generar Shapefile</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/shp-write@2.2.0/dist/shp-write.min.js"></script>
+    <title>Terrazas Providencia</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <!-- Cargar la librería shp-write -->
+    <script src="https://unpkg.com/shp-write@latest/shpwrite.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        #map { height: 600px; width: 100%; }
+        #exportButton { margin-top: 10px; }
+    </style>
 </head>
 <body>
-    <button id="downloadBtn">Descargar Shapefile</button>
+    <h1>Terrazas en SECPLA sin registro en RENTAS</h1>
+    <div id="map"></div>
+    <button id="exportButton">Exportar a SHP</button>
 
     <script>
+        // Inicializar el mapa
+        const map = L.map('map').setView([-33.4489, -70.6693], 12); // Coordenadas iniciales (Santiago)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Almacenar los puntos para exportarlos
+        let markers = [];
+
+        // URL del archivo CSV (cambiar si es necesario)
         const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQdwp2muQD8wzNNA4i87SOGyiEXNbLL0cFkwq3YlSiwEXjaq88kKc-mXFU-eFlLMwCoSufoKoOTT4eI/pub?output=csv';
 
-        // Función para generar el shapefile
-        function generateShapefile(data) {
-            const points = [];
+        // Leer y procesar el CSV
+        Papa.parse(csvUrl, {
+            download: true,
+            header: true,
+            complete: function(results) {
+                const data = results.data; // Filas del CSV
+                if (data.length === 0) {
+                    console.error('El archivo CSV está vacío o no tiene datos válidos.');
+                    return;
+                }
 
-            data.forEach((row, index) => {
-                const lat = parseFloat(row.Y); // Columna 'Y' (latitud)
-                const lon = parseFloat(row.X); // Columna 'X' (longitud)
+                data.forEach((row, index) => {
+                    const lat = parseFloat(row.Y); // Columna 'Y' (latitud)
+                    const lon = parseFloat(row.X); // Columna 'X' (longitud)
+                    const name = row.LOCAL || `Punto ${index + 1}`; // Usar columna LOCAL o nombre genérico
+                    const direccion = row.DIRECCIÓN || 'Dirección no disponible'; // Dirección desde la columna A
+                    const local = row.LOCAL || 'No aplica';
+                    const foto = row.FOTO || ''; // Obtener el enlace de la foto, si existe
 
-                // Validar coordenadas
-                if (!isNaN(lat) && !isNaN(lon)) {
-                    points.push({
+                    // Validar coordenadas
+                    if (!isNaN(lat) && !isNaN(lon)) {
+                        // Crear contenido del popup
+                        let popupContent = `  
+                            <strong>${name}</strong><br>
+                            Dirección: ${direccion}<br>
+                            Local: ${local}<br>
+                            Lat: ${lat}, Lon: ${lon}
+                        `;
+                        
+                        // Si hay una foto válida, agregarla al contenido del popup
+                        if (foto) {
+                            popupContent += `
+                                <br><strong>Foto:</strong><br>
+                                <img src="${foto}" alt="Imagen del lugar" style="width: 200px; height: auto;">
+                            `;
+                        }
+
+                        const marker = L.marker([lat, lon])
+                            .addTo(map)
+                            .bindPopup(popupContent);
+
+                        markers.push(marker); // Guardar marcador en el array
+                    } else {
+                        console.warn(`Coordenadas inválidas en fila ${index + 1}: ${JSON.stringify(row)}`);
+                    }
+                });
+            },
+            error: function(error) {
+                console.error('Error al procesar el CSV:', error);
+            }
+        });
+
+        // Función para exportar los puntos visibles a SHP
+        document.getElementById('exportButton').addEventListener('click', function() {
+            // Crear un objeto GeoJSON a partir de los puntos del mapa
+            const geojson = {
+                type: "FeatureCollection",
+                features: markers.map(marker => {
+                    const latLng = marker.getLatLng();
+                    return {
                         type: "Feature",
+                        properties: {
+                            name: marker.getPopup().getContent()
+                        },
                         geometry: {
                             type: "Point",
-                            coordinates: [lon, lat]
-                        },
-                        properties: {
-                            name: row.LOCAL || `Punto ${index + 1}`,
-                            direccion: row.DIRECCIÓN || 'Dirección no disponible',
-                            local: row.LOCAL || 'No aplica',
-                            foto: row.FOTO || ''
+                            coordinates: [latLng.lng, latLng.lat]
                         }
-                    });
-                }
-            });
+                    };
+                })
+            };
 
-            // Crear el shapefile usando shp-write
-            const shapefileData = shp.write({
-                type: 'FeatureCollection',
-                features: points
-            });
+            // Verificar si shp-write se ha cargado correctamente
+            if (typeof shpwrite === 'undefined') {
+                console.error('shp-write no se ha cargado correctamente.');
+                return;
+            }
 
-            return shapefileData;
-        }
+            // Usar shp-write para convertir el GeoJSON a SHP
+            const zip = shpwrite.zip(geojson);
 
-        // Función para descargar el shapefile
-        function downloadShapefile() {
-            Papa.parse(csvUrl, {
-                download: true,
-                header: true,
-                complete: function(results) {
-                    const data = results.data; // Filas del CSV
-                    if (data.length === 0) {
-                        console.error('El archivo CSV está vacío o no tiene datos válidos.');
-                        return;
-                    }
-
-                    const shapefileData = generateShapefile(data);
-
-                    // Crear un enlace temporal para la descarga
-                    const blob = new Blob([shapefileData], { type: "application/octet-stream" });
-                    const link = document.createElement("a");
-                    link.href = URL.createObjectURL(blob);
-                    link.download = "datos_lugares.zip";  // Descargar como archivo ZIP (shapefile contiene varios archivos)
-                    link.click();
-                }
-            });
-        }
-
-        // Asignar la función de descarga al botón
-        document.getElementById('downloadBtn').addEventListener('click', downloadShapefile);
+            // Guardar el archivo SHP como un .zip
+            saveAs(zip, 'terrazas_providencia.zip');
+        });
     </script>
 </body>
 </html>
-
