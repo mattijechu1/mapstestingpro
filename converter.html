@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generar Shapefile</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://unpkg.com/shapefile@0.5.0/dist/shapefile.min.js"></script>
+</head>
+<body>
+    <button id="downloadBtn">Descargar Shapefile</button>
+
+    <script>
+        const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQdwp2muQD8wzNNA4i87SOGyiEXNbLL0cFkwq3YlSiwEXjaq88kKc-mXFU-eFlLMwCoSufoKoOTT4eI/pub?output=csv';
+
+        // Función para generar el shapefile
+        function generateShapefile(data) {
+            const points = [];
+
+            data.forEach((row, index) => {
+                const lat = parseFloat(row.Y); // Columna 'Y' (latitud)
+                const lon = parseFloat(row.X); // Columna 'X' (longitud)
+
+                // Validar coordenadas
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    points.push({
+                        type: "Feature",
+                        geometry: {
+                            type: "Point",
+                            coordinates: [lon, lat]
+                        },
+                        properties: {
+                            name: row.LOCAL || `Punto ${index + 1}`,
+                            direccion: row.DIRECCIÓN || 'Dirección no disponible',
+                            local: row.LOCAL || 'No aplica',
+                            foto: row.FOTO || ''
+                        }
+                    });
+                }
+            });
+
+            // Crear el shapefile en formato GeoJSON
+            const geojson = {
+                type: "FeatureCollection",
+                features: points
+            };
+
+            // Convertir el GeoJSON a un shapefile
+            const writer = new shapefile.Writer();
+            writer.writeFeatures(geojson.features);
+            writer.end();
+
+            return writer.toBuffer();  // Esto devuelve el shapefile como un buffer binario
+        }
+
+        // Función para descargar el shapefile
+        function downloadShapefile() {
+            Papa.parse(csvUrl, {
+                download: true,
+                header: true,
+                complete: function(results) {
+                    const data = results.data; // Filas del CSV
+                    if (data.length === 0) {
+                        console.error('El archivo CSV está vacío o no tiene datos válidos.');
+                        return;
+                    }
+
+                    const shapefileData = generateShapefile(data);
+
+                    // Crear un enlace temporal para la descarga
+                    const blob = new Blob([shapefileData], { type: "application/octet-stream" });
+                    const link = document.createElement("a");
+                    link.href = URL.createObjectURL(blob);
+                    link.download = "datos_lugares.shp";
+                    link.click();
+                }
+            });
+        }
+
+        // Asignar la función de descarga al botón
+        document.getElementById('downloadBtn').addEventListener('click', downloadShapefile);
+    </script>
+</body>
+</html>
