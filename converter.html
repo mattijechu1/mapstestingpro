@@ -7,18 +7,17 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <!-- Usar la librería shpjs -->
-    <script src="https://cdn.jsdelivr.net/npm/shpjs@0.7.1/dist/shp.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
         #map { height: 600px; width: 100%; }
-        #exportButton { margin-top: 10px; }
+        #exportButton { margin-top: 10px; display: block; margin: 0 auto; }
     </style>
 </head>
 <body>
     <h1>Terrazas en SECPLA sin registro en RENTAS</h1>
     <div id="map"></div>
-    <button id="exportButton">Exportar a SHP</button>
+    <button id="exportButton">Exportar a KMZ</button>
 
     <script>
         // Inicializar el mapa
@@ -86,40 +85,39 @@
             }
         });
 
-        // Función para exportar los puntos visibles a SHP
+        // Función para exportar los puntos a KMZ
         document.getElementById('exportButton').addEventListener('click', function() {
-            // Crear un objeto GeoJSON a partir de los puntos del mapa
-            const geojson = {
-                type: "FeatureCollection",
-                features: markers.map(marker => {
-                    const latLng = marker.getLatLng();
-                    return {
-                        type: "Feature",
-                        properties: {
-                            name: marker.getPopup().getContent()
-                        },
-                        geometry: {
-                            type: "Point",
-                            coordinates: [latLng.lng, latLng.lat]
-                        }
-                    };
-                })
-            };
+            const kmz = new JSZip();
 
-            // Verificar si shpjs está correctamente cargado
-            if (typeof shp === 'undefined') {
-                console.error('shpjs no se ha cargado correctamente.');
-                return;
-            }
+            // Crear un archivo KML
+            let kmlContent = '<?xml version="1.0" encoding="UTF-8"?>' +
+                '<kml xmlns="http://www.opengis.net/kml/2.2">' +
+                '<Document>';
 
-            // Usar shpjs para convertir el GeoJSON a SHP
-            try {
-                const zip = shp.write(geojson); // Generar el archivo .zip con el SHP
-                // Guardar el archivo SHP como un .zip
-                saveAs(zip, 'terrazas_providencia.zip');
-            } catch (error) {
-                console.error('Error al generar el archivo SHP:', error);
-            }
+            markers.forEach(marker => {
+                const latLng = marker.getLatLng();
+                const name = marker.getPopup().getContent().split('<strong>')[1].split('</strong>')[0];
+                const description = marker.getPopup().getContent();
+
+                kmlContent += `
+                    <Placemark>
+                        <name>${name}</name>
+                        <description>${description}</description>
+                        <Point>
+                            <coordinates>${latLng.lng},${latLng.lat}</coordinates>
+                        </Point>
+                    </Placemark>`;
+            });
+
+            kmlContent += '</Document></kml>';
+
+            // Agregar el archivo KML al ZIP
+            kmz.file('doc.kml', kmlContent);
+
+            // Generar el archivo KMZ y descargarlo
+            kmz.generateAsync({ type: 'blob' }).then(function(content) {
+                saveAs(content, 'terrazas_providencia.kmz');
+            });
         });
     </script>
 </body>
