@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,17 +7,18 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tokml@0.4.0/tokml.min.js"></script>
     <style>
         #map { height: 600px; width: 100%; }
-        #exportButton { margin-top: 10px; display: block; margin: 0 auto; }
+        #kmzButton { margin-top: 10px; display: block; text-align: center; }
     </style>
 </head>
 <body>
     <h1>Terrazas en SECPLA sin registro en RENTAS</h1>
     <div id="map"></div>
-    <button id="exportButton">Exportar a KMZ</button>
+    <button id="kmzButton">Convertir a KMZ</button>
 
     <script>
         // Inicializar el mapa
@@ -74,7 +75,11 @@
                             .addTo(map)
                             .bindPopup(popupContent);
 
-                        markers.push(marker); // Guardar marcador en el array
+                        markers.push({
+                            lat: lat,
+                            lon: lon,
+                            properties: { name, direccion, local, foto }
+                        });
                     } else {
                         console.warn(`Coordenadas inválidas en fila ${index + 1}: ${JSON.stringify(row)}`);
                     }
@@ -85,38 +90,25 @@
             }
         });
 
-        // Función para exportar los puntos a KMZ
-        document.getElementById('exportButton').addEventListener('click', function() {
-            const kmz = new JSZip();
+        // Función para convertir a KMZ
+        document.getElementById('kmzButton').addEventListener('click', function() {
+            const geojson = {
+                type: "FeatureCollection",
+                features: markers.map(marker => ({
+                    type: "Feature",
+                    properties: marker.properties,
+                    geometry: {
+                        type: "Point",
+                        coordinates: [marker.lon, marker.lat]
+                    }
+                }))
+            };
 
-            // Crear un archivo KML
-            let kmlContent = '<?xml version="1.0" encoding="UTF-8"?>' +
-                '<kml xmlns="http://www.opengis.net/kml/2.2">' +
-                '<Document>';
-
-            markers.forEach(marker => {
-                const latLng = marker.getLatLng();
-                const name = marker.getPopup().getContent().split('<strong>')[1].split('</strong>')[0];
-                const description = marker.getPopup().getContent();
-
-                kmlContent += `
-                    <Placemark>
-                        <name>${name}</name>
-                        <description>${description}</description>
-                        <Point>
-                            <coordinates>${latLng.lng},${latLng.lat}</coordinates>
-                        </Point>
-                    </Placemark>`;
-            });
-
-            kmlContent += '</Document></kml>';
-
-            // Agregar el archivo KML al ZIP
-            kmz.file('doc.kml', kmlContent);
-
-            // Generar el archivo KMZ y descargarlo
-            kmz.generateAsync({ type: 'blob' }).then(function(content) {
-                saveAs(content, 'terrazas_providencia.kmz');
+            const kml = tokml(geojson);
+            const zip = new JSZip();
+            zip.file("doc.kml", kml);
+            zip.generateAsync({ type: "blob" }).then(function(content) {
+                saveAs(content, "terrazas_providencia.kmz");
             });
         });
     </script>
