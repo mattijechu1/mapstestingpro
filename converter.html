@@ -118,6 +118,19 @@
             // Guardar el archivo SHP como un .zip
             saveAs(zip, 'terrazas_providencia.zip');
         });
+
+        <script>
+  // Verificar si la librería se cargó correctamente
+  const checkShpWrite = setInterval(function() {
+    if (typeof shpwrite !== 'undefined') {
+      console.log("shp-write cargado correctamente.");
+      clearInterval(checkShpWrite);
+    } else {
+      console.error("shp-write no se ha cargado.");
+    }
+  }, 1000); // Verifica cada segundo
+</script>
+
     </script>
 </body>
 </html>
