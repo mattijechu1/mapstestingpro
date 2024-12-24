@@ -7,21 +7,16 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/shp-write@2.0.2/shpwrite.min.js"></script>
+    <script src="https://unpkg.com/leaflet-shapefile"></script> <!-- Librería para exportar SHP -->
     <style>
         #map { height: 600px; width: 100%; }
-        #buttons { margin: 10px 0; text-align: center; }
-        button { padding: 10px 20px; margin: 5px; font-size: 16px; cursor: pointer; }
+        #exportButton { margin-top: 10px; }
     </style>
 </head>
 <body>
     <h1>Terrazas en SECPLA sin registro en RENTAS</h1>
     <div id="map"></div>
-    <div id="buttons">
-        <button id="downloadKMZ">Descarga KMZ</button>
-        <button id="downloadSHP">Descarga SHP</button>
-    </div>
+    <button id="exportButton">Exportar a SHP</button>
 
     <script>
         // Inicializar el mapa
@@ -31,10 +26,11 @@
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        // URL del archivo CSV
-        const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQdwp2muQD8wzNNA4i87SOGyiEXNbLL0cFkwq3YlSiwEXjaq88kKc-mXFU-eFlLMwCoSufoKoOTT4eI/pub?output=csv';
+        // Almacenar los puntos para exportarlos
+        let markers = [];
 
-        let geojsonData = []; // Para almacenar los datos en formato GeoJSON
+        // URL del archivo CSV (cambiar si es necesario)
+        const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQdwp2muQD8wzNNA4i87SOGyiEXNbLL0cFkwq3YlSiwEXjaq88kKc-mXFU-eFlLMwCoSufoKoOTT4eI/pub?output=csv';
 
         // Leer y procesar el CSV
         Papa.parse(csvUrl, {
@@ -52,25 +48,34 @@
                     const lon = parseFloat(row.X); // Columna 'X' (longitud)
                     const name = row.LOCAL || `Punto ${index + 1}`; // Usar columna LOCAL o nombre genérico
                     const direccion = row.DIRECCIÓN || 'Dirección no disponible'; // Dirección desde la columna A
+                    const local = row.LOCAL || 'No aplica';
+                    const foto = row.FOTO || ''; // Obtener el enlace de la foto, si existe
 
+                    // Validar coordenadas
                     if (!isNaN(lat) && !isNaN(lon)) {
-                        // Crear marcador y agregar al mapa
-                        L.marker([lat, lon])
-                            .addTo(map)
-                            .bindPopup(`<strong>${name}</strong><br>Dirección: ${direccion}`);
+                        // Crear contenido del popup
+                        let popupContent = `  
+                            <strong>${name}</strong><br>
+                            Dirección: ${direccion}<br>
+                            Local: ${local}<br>
+                            Lat: ${lat}, Lon: ${lon}
+                        `;
+                        
+                        // Si hay una foto válida, agregarla al contenido del popup
+                        if (foto) {
+                            popupContent += `
+                                <br><strong>Foto:</strong><br>
+                                <img src="${foto}" alt="Imagen del lugar" style="width: 200px; height: auto;">
+                            `;
+                        }
 
-                        // Agregar datos al GeoJSON
-                        geojsonData.push({
-                            type: "Feature",
-                            geometry: {
-                                type: "Point",
-                                coordinates: [lon, lat]
-                            },
-                            properties: {
-                                name: name,
-                                direccion: direccion
-                            }
-                        });
+                        const marker = L.marker([lat, lon])
+                            .addTo(map)
+                            .bindPopup(popupContent);
+
+                        markers.push(marker); // Guardar marcador en el array
+                    } else {
+                        console.warn(`Coordenadas inválidas en fila ${index + 1}: ${JSON.stringify(row)}`);
                     }
                 });
             },
@@ -79,69 +84,31 @@
             }
         });
 
-        // Función para descargar como KMZ
-        document.getElementById('downloadKMZ').addEventListener('click', function () {
-            if (geojsonData.length === 0) {
-                alert("No hay datos para exportar a KMZ.");
-                return;
-            }
+        // Función para exportar los puntos visibles a SHP
+        document.getElementById('exportButton').addEventListener('click', function() {
+            const geojson = {
+                type: "FeatureCollection",
+                features: markers.map(marker => {
+                    const latLng = marker.getLatLng();
+                    return {
+                        type: "Feature",
+                        properties: {
+                            name: marker.getPopup().getContent()
+                        },
+                        geometry: {
+                            type: "Point",
+                            coordinates: [latLng.lng, latLng.lat]
+                        }
+                    };
+                })
+            };
 
-            const zip = new JSZip();
-            const kmlContent = `<?xml version="1.0" encoding="UTF-8"?>
-                <kml xmlns="http://www.opengis.net/kml/2.2">
-                    <Document>
-                        ${geojsonData.map(feature => `
-                            <Placemark>
-                                <name>${feature.properties.name}</name>
-                                <description>${feature.properties.direccion}</description>
-                                <Point>
-                                    <coordinates>${feature.geometry.coordinates.join(',')}</coordinates>
-                                </Point>
-                            </Placemark>
-                        `).join('')}
-                    </Document>
-                </kml>
-            `;
-            zip.file("map.kml", kmlContent.trim()); // Eliminar espacios adicionales
-            zip.generateAsync({ type: "blob" }).then(function (content) {
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(content);
-                a.download = 'map.kmz';
-                a.click();
-            });
+            // Convertir GeoJSON a Shapefile usando leaflet-shapefile.js
+            const shapefile = new L.Shapefile(geojson, { type: 'points' });
+
+            shapefile.save('terrazas_providencia'); // Descargar el archivo SHP
         });
-
-        // Función para descargar como SHP
-        document.getElementById('downloadSHP').addEventListener('click', function () {
-        if (geojsonData.length === 0) {
-            alert("No hay datos para exportar a SHP.");
-            return;
-        }
-
-        // Crear el GeoJSON como FeatureCollection
-        const geojson = {
-            type: "FeatureCollection",
-            features: geojsonData.map(feature => ({
-                type: "Feature",
-                geometry: {
-                    type: "Point",
-                    coordinates: feature.geometry.coordinates
-                },
-                properties: {
-                    name: feature.properties.name || "Sin nombre",
-                    direccion: feature.properties.direccion || "Sin dirección"
-                }
-            }))
-        };
-
-        try {
-            // Intentar generar y descargar el archivo SHP
-            shpwrite.download(geojson);
-        } catch (error) {
-            console.error('Error al generar el archivo SHP:', error);
-            alert('Ocurrió un error al generar el archivo SHP. Verifica los datos.');
-        }
-    });
     </script>
 </body>
 </html>
+
