@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <script src="https://unpkg.com/shp-write@3.0.0/dist/shp-write.min.js"></script> <!-- Asegúrate de que esta URL esté bien cargada -->
+    <script src="https://unpkg.com/shp-write@3.0.0/dist/shp-write.min.js"></script> <!-- Asegúrate de cargar esta librería primero -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script> <!-- FileSaver.js para descargar -->
     <style>
         #map { height: 600px; width: 100%; }
@@ -20,13 +20,6 @@
     <button id="exportButton">Exportar a SHP</button>
 
     <script>
-        // Asegúrate de que shp-write se haya cargado correctamente
-        if (typeof shpwrite === "undefined") {
-            console.error("La librería shp-write no se ha cargado correctamente.");
-        } else {
-            console.log("shp-write cargada correctamente.");
-        }
-
         // Inicializar el mapa
         const map = L.map('map').setView([-33.4489, -70.6693], 12); // Coordenadas iniciales (Santiago)
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -94,6 +87,7 @@
 
         // Función para exportar los puntos visibles a SHP
         document.getElementById('exportButton').addEventListener('click', function() {
+            // Asegurarse de que shp-write esté cargado correctamente
             if (typeof shpwrite === "undefined") {
                 alert("La librería shp-write no está disponible.");
                 return;
