@@ -8,6 +8,7 @@
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://unpkg.com/shapefile/dist/shapefile.min.js"></script> <!-- Librería Shapefile.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script> <!-- FileSaver.js para descargar -->
     <style>
         #map { height: 600px; width: 100%; }
         #exportButton { margin-top: 10px; }
@@ -104,18 +105,12 @@
                 })
             };
 
-            // Convertir GeoJSON a SHP utilizando shapefile.js
-            const writer = shapefile.Writer();
-            writer.addGeoJson(geojson);
-
-            // Exportar el archivo SHP
-            writer.end().then(function(shp) {
-                // Crear un archivo Blob con el contenido SHP
-                const blob = new Blob([shp], { type: 'application/zip' });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = 'terrazas_providencia.zip';
-                link.click();
+            // Convertir el GeoJSON a SHP y exportarlo usando shapefile.js
+            shapefile.write(geojson).then(function(blob) {
+                // Guardar el archivo SHP como un .zip
+                saveAs(blob, 'terrazas_providencia.zip');
+            }).catch(function(error) {
+                console.error('Error al crear el archivo SHP:', error);
             });
         });
     </script>
