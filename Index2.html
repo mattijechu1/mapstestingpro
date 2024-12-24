@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <script src="https://unpkg.com/leaflet-shapefile"></script> <!-- Librería para exportar SHP -->
+    <script src="https://unpkg.com/shapefile/dist/shapefile.min.js"></script> <!-- Librería Shapefile.js -->
     <style>
         #map { height: 600px; width: 100%; }
         #exportButton { margin-top: 10px; }
@@ -86,6 +86,7 @@
 
         // Función para exportar los puntos visibles a SHP
         document.getElementById('exportButton').addEventListener('click', function() {
+            // Crear un objeto GeoJSON a partir de los puntos del mapa
             const geojson = {
                 type: "FeatureCollection",
                 features: markers.map(marker => {
@@ -103,12 +104,20 @@
                 })
             };
 
-            // Convertir GeoJSON a Shapefile usando leaflet-shapefile.js
-            const shapefile = new L.Shapefile(geojson, { type: 'points' });
+            // Convertir GeoJSON a SHP utilizando shapefile.js
+            const writer = shapefile.Writer();
+            writer.addGeoJson(geojson);
 
-            shapefile.save('terrazas_providencia'); // Descargar el archivo SHP
+            // Exportar el archivo SHP
+            writer.end().then(function(shp) {
+                // Crear un archivo Blob con el contenido SHP
+                const blob = new Blob([shp], { type: 'application/zip' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'terrazas_providencia.zip';
+                link.click();
+            });
         });
     </script>
 </body>
 </html>
-
