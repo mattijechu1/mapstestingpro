@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Generar Shapefile</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
-    <script src="https://unpkg.com/shapefile@0.5.0/dist/shapefile.min.js"></script>
+    <script src="https://unpkg.com/shp-write@2.2.0/dist/shp-write.min.js"></script>
 </head>
 <body>
     <button id="downloadBtn">Descargar Shapefile</button>
@@ -39,18 +39,13 @@
                 }
             });
 
-            // Crear el shapefile en formato GeoJSON
-            const geojson = {
-                type: "FeatureCollection",
+            // Crear el shapefile usando shp-write
+            const shapefileData = shp.write({
+                type: 'FeatureCollection',
                 features: points
-            };
+            });
 
-            // Convertir el GeoJSON a un shapefile
-            const writer = new shapefile.Writer();
-            writer.writeFeatures(geojson.features);
-            writer.end();
-
-            return writer.toBuffer();  // Esto devuelve el shapefile como un buffer binario
+            return shapefileData;
         }
 
         // Función para descargar el shapefile
@@ -71,7 +66,7 @@
                     const blob = new Blob([shapefileData], { type: "application/octet-stream" });
                     const link = document.createElement("a");
                     link.href = URL.createObjectURL(blob);
-                    link.download = "datos_lugares.shp";
+                    link.download = "datos_lugares.zip";  // Descargar como archivo ZIP (shapefile contiene varios archivos)
                     link.click();
                 }
             });
