@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <script src="https://unpkg.com/shapefile/dist/shapefile.min.js"></script> <!-- Librería Shapefile.js -->
+    <script src="https://unpkg.com/shp-write@3.0.0/dist/shp-write.min.js"></script> <!-- Librería shp-write -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script> <!-- FileSaver.js para descargar -->
     <style>
         #map { height: 600px; width: 100%; }
@@ -105,13 +105,11 @@
                 })
             };
 
-            // Convertir el GeoJSON a SHP y exportarlo usando shapefile.js
-            shapefile.write(geojson).then(function(blob) {
-                // Guardar el archivo SHP como un .zip
-                saveAs(blob, 'terrazas_providencia.zip');
-            }).catch(function(error) {
-                console.error('Error al crear el archivo SHP:', error);
-            });
+            // Convertir el GeoJSON a SHP y exportarlo usando shp-write
+            const zip = shpwrite.zip(geojson);
+
+            // Guardar el archivo SHP como un .zip
+            saveAs(zip, 'terrazas_providencia.zip');
         });
     </script>
 </body>
