@@ -113,23 +113,35 @@
 
         // Función para descargar como SHP
         document.getElementById('downloadSHP').addEventListener('click', function () {
-            if (geojsonData.length === 0) {
-                alert("No hay datos para exportar a SHP.");
-                return;
-            }
+        if (geojsonData.length === 0) {
+            alert("No hay datos para exportar a SHP.");
+            return;
+        }
 
-            const geojson = {
-                type: "FeatureCollection",
-                features: geojsonData
-            };
+        // Crear el GeoJSON como FeatureCollection
+        const geojson = {
+            type: "FeatureCollection",
+            features: geojsonData.map(feature => ({
+                type: "Feature",
+                geometry: {
+                    type: "Point",
+                    coordinates: feature.geometry.coordinates
+                },
+                properties: {
+                    name: feature.properties.name || "Sin nombre",
+                    direccion: feature.properties.direccion || "Sin dirección"
+                }
+            }))
+        };
 
-            try {
-                shpwrite.download(geojson);
-            } catch (error) {
-                console.error('Error al generar el archivo SHP:', error);
-                alert('Ocurrió un error al generar el archivo SHP.');
-            }
-        });
+        try {
+            // Intentar generar y descargar el archivo SHP
+            shpwrite.download(geojson);
+        } catch (error) {
+            console.error('Error al generar el archivo SHP:', error);
+            alert('Ocurrió un error al generar el archivo SHP. Verifica los datos.');
+        }
+    });
     </script>
 </body>
 </html>
