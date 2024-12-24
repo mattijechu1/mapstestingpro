@@ -12,13 +12,14 @@
     <script src="https://cdn.jsdelivr.net/npm/tokml@0.4.0/tokml.min.js"></script>
     <style>
         #map { height: 600px; width: 100%; }
-        #kmzButton { margin-top: 10px; display: block; text-align: center; }
+        .download-button { margin-top: 10px; display: block; text-align: center; }
     </style>
 </head>
 <body>
     <h1>Terrazas en SECPLA sin registro en RENTAS</h1>
     <div id="map"></div>
-    <button id="kmzButton">Convertir a KMZ</button>
+    <button id="kmzButton" class="download-button">Convertir a KMZ</button>
+    <button id="geojsonButton" class="download-button">Descargar GeoJSON</button>
 
     <script>
         // Inicializar el mapa
@@ -62,7 +63,7 @@
                             Local: ${local}<br>
                             Lat: ${lat}, Lon: ${lon}
                         `;
-                        
+
                         // Si hay una foto válida, agregarla al contenido del popup
                         if (foto) {
                             popupContent += `
@@ -110,6 +111,24 @@
             zip.generateAsync({ type: "blob" }).then(function(content) {
                 saveAs(content, "terrazas_providencia.kmz");
             });
+        });
+
+        // Función para descargar GeoJSON
+        document.getElementById('geojsonButton').addEventListener('click', function() {
+            const geojson = {
+                type: "FeatureCollection",
+                features: markers.map(marker => ({
+                    type: "Feature",
+                    properties: marker.properties,
+                    geometry: {
+                        type: "Point",
+                        coordinates: [marker.lon, marker.lat]
+                    }
+                }))
+            };
+
+            const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: "application/json" });
+            saveAs(blob, "terrazas_providencia.geojson");
         });
     </script>
 </body>
