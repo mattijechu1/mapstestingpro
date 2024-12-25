@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GeoJSON to Shapefile Converter</title>
-    <script src="https://unpkg.com/@mapbox/shp-write@latest/shpwrite.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mapbox/shp-write@0.4.3/shpwrite.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -47,47 +47,51 @@
         <button onclick="convertToShapefile()">Convert to Shapefile</button>
         <p id="status"></p>
     </div>
-    <h1>Convert GeoJSON to Shapefile</h1>
-    <input type="file" id="geojsonFile" />
-    <select id="geometryType">
-        <option value="Point">Point</option>
-        <option value="MultiPoint">MultiPoint</option>
-        <option value="Polygon">Polygon</option>
-        <option value="LineString">LineString</option>
-    </select>
-    <button onclick="convertToShapefile()">Convert</button>
-    <p id="status"></p>
 
     <script>
         function convertToShapefile() {
-@@ -64,11 +34,13 @@
+            const fileInput = document.getElementById('geojsonFile');
+            const geometryType = document.getElementById('geometryType').value;
+            const status = document.getElementById('status');
+
+            if (!fileInput.files.length) {
+                status.textContent = 'Please upload a GeoJSON file.';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (event) {
                 try {
                     const geojson = JSON.parse(event.target.result);
 
-                    // Validate GeoJSON structure
                     if (geojson.type !== "FeatureCollection" || !Array.isArray(geojson.features)) {
                         throw new Error("Invalid GeoJSON structure. Ensure it is a FeatureCollection.");
                     }
 
                     const filteredFeatures = geojson.features.filter(feature => 
-                    // Filter features by geometry type
-                    const filteredFeatures = geojson.features.filter(feature =>
                         feature.geometry && feature.geometry.type.toLowerCase() === geometryType.toLowerCase()
                     );
 
-@@ -87,32 +59,34 @@
+                    if (filteredFeatures.length === 0) {
+                        throw new Error(`No features of type "${geometryType}" found in the GeoJSON.`);
+                    }
+
+                    const filteredGeoJSON = {
+                        type: "FeatureCollection",
+                        features: filteredFeatures
+                    };
+
+                    console.log("Filtered GeoJSON:", filteredGeoJSON);
+
+                    // Convert to Shapefile
                     const zipBlob = shpwrite.zip(filteredGeoJSON);
 
                     if (!zipBlob) {
                         throw new Error("shpwrite.zip did not return a valid output.");
-                        console.error("shpwrite.zip returned an invalid result:", zipBlob);
-                        throw new Error("shpwrite.zip did not return a valid result.");
                     }
 
-                    // Check if the output is a valid Blob
                     if (!(zipBlob instanceof Blob)) {
                         console.warn("zipBlob is not a Blob. Debug output:", zipBlob);
-                        console.error("The zipBlob is not a Blob. It is:", zipBlob);
                         throw new Error("shpwrite.zip did not return a valid Blob.");
                     }
 
@@ -112,4 +116,3 @@
     </script>
 </body>
 </html>
-
