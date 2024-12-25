@@ -62,12 +62,15 @@
             const reader = new FileReader();
             reader.onload = function (event) {
                 try {
+                    // Intenta parsear el GeoJSON
                     const geojson = JSON.parse(event.target.result);
 
+                    // Validar estructura básica de GeoJSON
                     if (geojson.type !== "FeatureCollection" || !Array.isArray(geojson.features)) {
                         throw new Error("Invalid GeoJSON structure. Ensure it is a FeatureCollection.");
                     }
 
+                    // Filtrar las features según el tipo seleccionado
                     const filteredFeatures = geojson.features.filter(feature => 
                         feature.geometry && feature.geometry.type.toLowerCase() === geometryType.toLowerCase()
                     );
@@ -81,29 +84,9 @@
                         features: filteredFeatures
                     };
 
-                    console.log("Filtered GeoJSON:", filteredGeoJSON);
-
-                    // Convert to Shapefile
-                    const zipBlob = shpwrite.zip(filteredGeoJSON);
-
-                    if (!zipBlob) {
-                        throw new Error("shpwrite.zip did not return a valid output.");
-                    }
-
-                    if (!(zipBlob instanceof Blob)) {
-                        console.warn("zipBlob is not a Blob. Debug output:", zipBlob);
-                        throw new Error("shpwrite.zip did not return a valid Blob.");
-                    }
-
-                    // Create a URL and trigger download
-                    const blobUrl = URL.createObjectURL(zipBlob);
-                    const link = document.createElement('a');
-                    link.href = blobUrl;
-                    link.download = 'shapefile.zip';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(blobUrl);
+                    // Convertir GeoJSON a Shapefile
+                    const options = { folder: 'geojson-to-shapefile', types: { [geometryType]: geometryType } };
+                    shpwrite.download(filteredGeoJSON, options);
 
                     status.textContent = 'Conversion successful! Download started.';
                 } catch (error) {
@@ -116,3 +99,4 @@
     </script>
 </body>
 </html>
+
