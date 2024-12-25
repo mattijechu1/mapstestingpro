@@ -92,9 +92,9 @@
                         features: filteredFeatures
                     };
 
-                    // Generar el archivo ZIP del Shapefile y almacenarlo
+                    // Generar el archivo ZIP del Shapefile y almacenar la referencia global
                     convertedBlob = shpwrite.zip(filteredGeoJSON);
-                    
+
                     // Actualizar estado y mostrar el botón de descarga
                     status.textContent = 'Conversión exitosa. Ahora puedes descargar el Shapefile.';
                     downloadButton.style.display = 'inline-block';
@@ -107,15 +107,20 @@
         }
 
         function downloadShapefile() {
-            if (convertedBlob) {
-                const url = URL.createObjectURL(convertedBlob);
+            if (convertedBlob instanceof ArrayBuffer) {
+                const blob = new Blob([convertedBlob], { type: "application/zip" }); // Crear un Blob válido
+                const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
                 a.download = 'geojson-to-shapefile.zip';
                 a.click();
-                URL.revokeObjectURL(url);
+                URL.revokeObjectURL(url); // Liberar la URL
+            } else {
+                console.error("Error: Archivo convertido no es válido.");
+                alert("Ocurrió un error al descargar el archivo. Por favor, intenta nuevamente.");
             }
         }
     </script>
 </body>
 </html>
+
