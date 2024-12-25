@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GeoJSON to Shapefile Converter</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mapbox/shp-write@2.0.1/shpwrite.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -47,7 +48,6 @@
         <p id="status"></p>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@mapbox/shp-write@0.4.3/shpwrite.min.js"></script>
     <script>
         function convertToShapefile() {
             const fileInput = document.getElementById('geojsonFile');
@@ -62,13 +62,16 @@
             const reader = new FileReader();
             reader.onload = function (event) {
                 try {
+                    // Intenta parsear el GeoJSON
                     const geojson = JSON.parse(event.target.result);
 
+                    // Validar estructura básica de GeoJSON
                     if (geojson.type !== "FeatureCollection" || !Array.isArray(geojson.features)) {
                         throw new Error("Invalid GeoJSON structure. Ensure it is a FeatureCollection.");
                     }
 
-                    const filteredFeatures = geojson.features.filter(feature =>
+                    // Filtrar las features según el tipo seleccionado
+                    const filteredFeatures = geojson.features.filter(feature => 
                         feature.geometry && feature.geometry.type.toLowerCase() === geometryType.toLowerCase()
                     );
 
@@ -81,8 +84,19 @@
                         features: filteredFeatures
                     };
 
+                    // Crear un blob ZIP con shpwrite y descargarlo manualmente
                     const options = { folder: 'geojson-to-shapefile', types: { [geometryType]: geometryType } };
-                    shpwrite.download(filteredGeoJSON, options);
+                    const zipBlob = shpwrite.zip(filteredGeoJSON, options);
+
+                    // Crear un enlace de descarga y activarlo
+                    const blobUrl = URL.createObjectURL(zipBlob);
+                    const link = document.createElement('a');
+                    link.href = blobUrl;
+                    link.download = 'shapefile.zip';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(blobUrl);
 
                     status.textContent = 'Conversion successful! Download started.';
                 } catch (error) {
