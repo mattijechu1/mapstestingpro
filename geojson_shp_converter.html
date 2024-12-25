@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GeoJSON to Shapefile Converter</title>
-    <!-- Cargar la versión correcta de shp-write -->
     <script src="https://cdn.jsdelivr.net/npm/@mapbox/shp-write@0.4.3/shpwrite.min.js"></script>
     <style>
         body {
@@ -82,12 +81,21 @@
                         features: filteredFeatures
                     };
 
+                    console.log("Filtered GeoJSON:", filteredGeoJSON);
+
+                    // Convert to Shapefile
                     const zipBlob = shpwrite.zip(filteredGeoJSON);
 
+                    if (!zipBlob) {
+                        throw new Error("shpwrite.zip did not return a valid output.");
+                    }
+
                     if (!(zipBlob instanceof Blob)) {
+                        console.warn("zipBlob is not a Blob. Debug output:", zipBlob);
                         throw new Error("shpwrite.zip did not return a valid Blob.");
                     }
 
+                    // Create a URL and trigger download
                     const blobUrl = URL.createObjectURL(zipBlob);
                     const link = document.createElement('a');
                     link.href = blobUrl;
@@ -108,4 +116,3 @@
     </script>
 </body>
 </html>
-
