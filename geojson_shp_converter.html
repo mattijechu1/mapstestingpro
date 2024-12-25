@@ -8,19 +8,18 @@
 </head>
 <body>
     <h1>GeoJSON to Shapefile Converter</h1>
-    <p>Upload a GeoJSON file and select the geometry type to filter:</p>
-    <input type="file" id="geojsonFile" accept=".geojson,application/json">
-    <label for="geometryType">Select Geometry Type:</label>
+    <p>Select a GeoJSON file and geometry type to convert to Shapefile:</p>
+
+    <input type="file" id="geojsonFile" accept=".geojson,.json">
     <select id="geometryType">
         <option value="Point">Point</option>
         <option value="MultiPoint">MultiPoint</option>
-        <option value="LineString">LineString</option>
         <option value="Polygon">Polygon</option>
-        <option value="MultiLineString">MultiLineString</option>
-        <option value="MultiPolygon">MultiPolygon</option>
+        <option value="LineString">LineString</option>
     </select>
-    <button onclick="convertToShapefile()">Convert to Shapefile</button>
-    <p id="status" style="color: red;"></p>
+    <button onclick="convertToShapefile()">Convert</button>
+
+    <p id="status"></p>
 
     <script>
         function convertToShapefile() {
