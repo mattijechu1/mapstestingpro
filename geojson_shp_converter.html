@@ -5,21 +5,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GeoJSON to Shapefile Converter</title>
     <script src="https://cdn.jsdelivr.net/npm/@mapbox/shp-write@0.4.3/shpwrite.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            max-width: 500px;
+            margin: auto;
+            text-align: center;
+        }
+        input, select {
+            margin: 10px 0;
+            padding: 8px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
 </head>
 <body>
-    <h1>GeoJSON to Shapefile Converter</h1>
-    <p>Select a GeoJSON file and geometry type to convert to Shapefile:</p>
-
-    <input type="file" id="geojsonFile" accept=".geojson,.json">
-    <select id="geometryType">
-        <option value="Point">Point</option>
-        <option value="MultiPoint">MultiPoint</option>
-        <option value="Polygon">Polygon</option>
-        <option value="LineString">LineString</option>
-    </select>
-    <button onclick="convertToShapefile()">Convert</button>
-
-    <p id="status"></p>
+    <div class="container">
+        <h1>GeoJSON to Shapefile Converter</h1>
+        <input type="file" id="geojsonFile" accept=".geojson">
+        <br>
+        <label for="geometryType">Select Geometry Type:</label>
+        <select id="geometryType">
+            <option value="point">Point</option>
+            <option value="multipoint">MultiPoint</option>
+            <option value="polygon">Polygon</option>
+            <option value="polyline">Polyline</option>
+        </select>
+        <br>
+        <button onclick="convertToShapefile()">Convert to Shapefile</button>
+        <p id="status"></p>
+    </div>
 
     <script>
         function convertToShapefile() {
@@ -37,13 +64,11 @@
                 try {
                     const geojson = JSON.parse(event.target.result);
 
-                    // Validate GeoJSON structure
                     if (geojson.type !== "FeatureCollection" || !Array.isArray(geojson.features)) {
                         throw new Error("Invalid GeoJSON structure. Ensure it is a FeatureCollection.");
                     }
 
-                    // Filter features by geometry type
-                    const filteredFeatures = geojson.features.filter(feature =>
+                    const filteredFeatures = geojson.features.filter(feature => 
                         feature.geometry && feature.geometry.type.toLowerCase() === geometryType.toLowerCase()
                     );
 
