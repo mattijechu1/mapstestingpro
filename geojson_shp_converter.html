@@ -63,15 +63,12 @@
             const reader = new FileReader();
             reader.onload = function (event) {
                 try {
-                    // Intenta parsear el GeoJSON
                     const geojson = JSON.parse(event.target.result);
 
-                    // Validar estructura básica de GeoJSON
                     if (geojson.type !== "FeatureCollection" || !Array.isArray(geojson.features)) {
                         throw new Error("Invalid GeoJSON structure. Ensure it is a FeatureCollection.");
                     }
 
-                    // Filtrar las features según el tipo seleccionado
                     const filteredFeatures = geojson.features.filter(feature => 
                         feature.geometry && feature.geometry.type.toLowerCase() === geometryType.toLowerCase()
                     );
@@ -85,11 +82,12 @@
                         features: filteredFeatures
                     };
 
-                    // Crear un blob ZIP con shpwrite y descargarlo manualmente
-                    const options = { folder: 'geojson-to-shapefile', types: { [geometryType]: geometryType } };
-                    const zipBlob = shpwrite.zip(filteredGeoJSON, options);
+                    const zipBlob = shpwrite.zip(filteredGeoJSON);
 
-                    // Crear un enlace de descarga y activarlo
+                    if (!(zipBlob instanceof Blob)) {
+                        throw new Error("shpwrite.zip did not return a valid Blob.");
+                    }
+
                     const blobUrl = URL.createObjectURL(zipBlob);
                     const link = document.createElement('a');
                     link.href = blobUrl;
@@ -110,3 +108,4 @@
     </script>
 </body>
 </html>
+
