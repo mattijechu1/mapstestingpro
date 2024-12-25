@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoJSON to Shapefile Converter</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mapbox/shp-write@0.4.3/shpwrite.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            max-width: 500px;
+            margin: auto;
+            text-align: center;
+        }
+        input, select {
+            margin: 10px 0;
+            padding: 8px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #downloadButton {
+            display: none;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>GeoJSON to Shapefile Converter</h1>
+        <input type="file" id="geojsonFile" accept=".geojson">
+        <br>
+        <label for="geometryType">Select Geometry Type:</label>
+        <select id="geometryType">
+            <option value="point">Point</option>
+            <option value="multipoint">MultiPoint</option>
+            <option value="polygon">Polygon</option>
+            <option value="polyline">Polyline</option>
+        </select>
+        <br>
+        <button onclick="processGeoJSON()">Ejecutar conversión</button>
+        <button id="downloadButton" onclick="downloadShapefile()">Descargar Shapefile</button>
+        <p id="status"></p>
+    </div>
+
+    <script>
+        let convertedBlob = null; // Variable global para almacenar el archivo generado
+
+        function processGeoJSON() {
+            const fileInput = document.getElementById('geojsonFile');
+            const geometryType = document.getElementById('geometryType').value;
+            const status = document.getElementById('status');
+            const downloadButton = document.getElementById('downloadButton');
+
+            if (!fileInput.files.length) {
+                status.textContent = 'Please upload a GeoJSON file.';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                try {
+                    // Intenta parsear el GeoJSON
+                    const geojson = JSON.parse(event.target.result);
+
+                    // Validar estructura básica de GeoJSON
+                    if (geojson.type !== "FeatureCollection" || !Array.isArray(geojson.features)) {
+                        throw new Error("Invalid GeoJSON structure. Ensure it is a FeatureCollection.");
+                    }
+
+                    // Filtrar las features según el tipo seleccionado
+                    const filteredFeatures = geojson.features.filter(feature => 
+                        feature.geometry && feature.geometry.type.toLowerCase() === geometryType.toLowerCase()
+                    );
+
+                    if (filteredFeatures.length === 0) {
+                        throw new Error(`No features of type "${geometryType}" found in the GeoJSON.`);
+                    }
+
+                    const filteredGeoJSON = {
+                        type: "FeatureCollection",
+                        features: filteredFeatures
+                    };
+
+                    // Generar el archivo ZIP del Shapefile y almacenarlo
+                    convertedBlob = shpwrite.zip(filteredGeoJSON);
+                    
+                    // Actualizar estado y mostrar el botón de descarga
+                    status.textContent = 'Conversión exitosa. Ahora puedes descargar el Shapefile.';
+                    downloadButton.style.display = 'inline-block';
+                } catch (error) {
+                    console.error("Error processing GeoJSON:", error);
+                    status.textContent = `Error: ${error.message}`;
+                }
+            };
+            reader.readAsText(fileInput.files[0]);
+        }
+
+        function downloadShapefile() {
+            if (convertedBlob) {
+                const url = URL.createObjectURL(convertedBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'geojson-to-shapefile.zip';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        }
+    </script>
+</body>
+</html>
