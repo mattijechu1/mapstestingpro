@@ -84,17 +84,16 @@
                         features: filteredFeatures
                     };
 
-                    // Convertir GeoJSON a Shapefile
-                    const options = { folder: 'geojson-to-shapefile', types: { [geometryType]: geometryType } };
-                    shpwrite.download(filteredGeoJSON, options);
+                   // Descargar el Shapefile directamente
+            shpwrite.download(filteredGeoJSON);
 
-                    status.textContent = 'Conversion successful! Download started.';
-                } catch (error) {
-                    console.error("Error processing GeoJSON:", error);
-                    status.textContent = `Error: ${error.message}`;
-                }
-            };
-            reader.readAsText(fileInput.files[0]);
+            status.textContent = 'Conversion successful! Download started.';
+        } catch (error) {
+            console.error("Error processing GeoJSON:", error);
+            status.textContent = `Error: ${error.message}`;
+        }
+    };
+    reader.readAsText(fileInput.files[0]);
         }
     </script>
 </body>
