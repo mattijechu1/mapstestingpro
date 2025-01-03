@@ -1,135 +1,58 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terrazas Providencia</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tokml@0.4.0/tokml.min.js"></script>
+    <title>Leaflet Map with Google Sheets</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        #map { height: 600px; width: 100%; }
-        .download-button { margin-top: 10px; display: block; text-align: center; }
+        #map {
+            height: 100vh;
+        }
     </style>
 </head>
 <body>
-    <h1>Terrazas en SECPLA sin registro en RENTAS</h1>
     <div id="map"></div>
-    <button id="kmzButton" class="download-button">Convertir a KMZ</button>
-    <button id="geojsonButton" class="download-button">Descargar GeoJSON</button>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Inicializar el mapa
-        const map = L.map('map').setView([-33.4489, -70.6693], 12); // Coordenadas iniciales (Santiago)
+        // Initialize the map
+        const map = L.map('map').setView([0, 0], 2);
+
+        // Add a base map layer
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap contributors'
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        // Almacenar los puntos para exportarlos
-        let markers = [];
+        // URL of the Google Sheet published as CSV
+        const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTn_jge6UPHXXPNEN7iT6718ITtylXlFoKuzd9Sfx4px0RBwoTJUe5QO-K_LvZXlQ/pub?output=csv";
 
-        // URL del archivo CSV (cambiar si es necesario)
-        const csvUrl = 'https://docs.google.com/spreadsheets/d/1ZigT77zKW9HBOchd2lNkHHQxoD_03qVN/export?format=csv';
+        // Fetch the CSV data
+        fetch(sheetUrl)
+            .then(response => response.text())
+            .then(csvText => {
+                const rows = csvText.split("\n").slice(1); // Split into rows, skip header
+                const markers = [];
 
-        // Leer y procesar el CSV
-        Papa.parse(csvUrl, {
-            download: true,
-            header: true,
-            complete: function(results) {
-                const data = results.data; // Filas del CSV
-                if (data.length === 0) {
-                    console.error('El archivo CSV está vacío o no tiene datos válidos.');
-                    return;
-                }
+                rows.forEach(row => {
+                    const cols = row.split(",");
+                    const x = parseFloat(cols[0]); // Replace with column index for longitude
+                    const y = parseFloat(cols[1]); // Replace with column index for latitude
 
-                data.forEach((row, index) => {
-                    const lat = parseFloat(row.Y); // Columna 'Y' (latitud)
-                    const lon = parseFloat(row.X); // Columna 'X' (longitud)
-                    const name = row.LOCAL || `Punto ${index + 1}`; // Usar columna LOCAL o nombre genérico
-                    const direccion = row.DIRECCIÓN || 'Dirección no disponible'; // Dirección desde la columna A
-                    const local = row.LOCAL || 'No aplica';
-                    const foto = row.FOTO || ''; // Obtener el enlace de la foto, si existe
-
-                    // Validar coordenadas
-                    if (!isNaN(lat) && !isNaN(lon)) {
-                        // Crear contenido del popup
-                        let popupContent = `  
-                            <strong>${name}</strong><br>
-                            Dirección: ${direccion}<br>
-                            Local: ${local}<br>
-                            Lat: ${lat}, Lon: ${lon}
-                        `;
-
-                        // Si hay una foto válida, agregarla al contenido del popup
-                        if (foto) {
-                            popupContent += `
-                                <br><strong>Foto:</strong><br>
-                                <img src="${foto}" alt="Imagen del lugar" style="width: 200px; height: auto;">
-                            `;
-                        }
-
-                        const marker = L.marker([lat, lon])
-                            .addTo(map)
-                            .bindPopup(popupContent);
-
-                        markers.push({
-                            lat: lat,
-                            lon: lon,
-                            properties: { name, direccion, local, foto }
-                        });
-                    } else {
-                        console.warn(`Coordenadas inválidas en fila ${index + 1}: ${JSON.stringify(row)}`);
+                    if (!isNaN(x) && !isNaN(y)) {
+                        const marker = L.marker([y, x]).addTo(map)
+                            .bindPopup(`Coordinates: (${x}, ${y})`);
+                        markers.push([y, x]);
                     }
                 });
-            },
-            error: function(error) {
-                console.error('Error al procesar el CSV:', error);
-            }
-        });
 
-        // Función para convertir a KMZ
-        document.getElementById('kmzButton').addEventListener('click', function() {
-            const geojson = {
-                type: "FeatureCollection",
-                features: markers.map(marker => ({
-                    type: "Feature",
-                    properties: marker.properties,
-                    geometry: {
-                        type: "Point",
-                        coordinates: [marker.lon, marker.lat]
-                    }
-                }))
-            };
-
-            const kml = tokml(geojson);
-            const zip = new JSZip();
-            zip.file("doc.kml", kml);
-            zip.generateAsync({ type: "blob" }).then(function(content) {
-                saveAs(content, "terrazas_providencia.kmz");
-            });
-        });
-
-        // Función para descargar GeoJSON
-        document.getElementById('geojsonButton').addEventListener('click', function() {
-            const geojson = {
-                type: "FeatureCollection",
-                features: markers.map(marker => ({
-                    type: "Feature",
-                    properties: marker.properties,
-                    geometry: {
-                        type: "Point",
-                        coordinates: [marker.lon, marker.lat]
-                    }
-                }))
-            };
-
-            const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: "application/json" });
-            saveAs(blob, "terrazas_providencia.geojson");
-        });
+                // Adjust map view to the bounds of the markers
+                if (markers.length > 0) {
+                    const bounds = L.latLngBounds(markers);
+                    map.fitBounds(bounds);
+                }
+            })
+            .catch(error => console.error("Error fetching the Google Sheet:", error));
     </script>
 </body>
 </html>
