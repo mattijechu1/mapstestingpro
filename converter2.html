@@ -36,8 +36,8 @@
 
                 rows.forEach(row => {
                     const cols = row.split(",");
-                    const x = parseFloat(cols[0]); // Replace with column index for longitude
-                    const y = parseFloat(cols[1]); // Replace with column index for latitude
+                    const x = parseFloat(cols[8]); // Replace with column index for longitude
+                    const y = parseFloat(cols[9]); // Replace with column index for latitude
 
                     if (!isNaN(x) && !isNaN(y)) {
                         const marker = L.marker([y, x]).addTo(map)
