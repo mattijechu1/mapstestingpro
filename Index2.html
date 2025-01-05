@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,22 +7,23 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <!-- Usar la librería shpjs -->
-    <script src="https://cdn.jsdelivr.net/npm/shpjs@0.7.1/dist/shp.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tokml@0.4.0/tokml.min.js"></script>
     <style>
         #map { height: 600px; width: 100%; }
-        #exportButton { margin-top: 10px; }
+        .download-button { margin-top: 10px; display: block; text-align: center; }
     </style>
 </head>
 <body>
     <h1>Terrazas en SECPLA sin registro en RENTAS</h1>
     <div id="map"></div>
-    <button id="exportButton">Exportar a SHP</button>
+    <button id="kmzButton" class="download-button">Convertir a KMZ</button>
+    <button id="geojsonButton" class="download-button">Descargar GeoJSON</button>
 
     <script>
         // Inicializar el mapa
-        const map = L.map('map').setView([-33.4489, -70.6693], 12); // Coordenadas iniciales (Santiago)
+        const map = L.map('map').setView([-33.433333,-70.616667], 14.4); // Coordenadas iniciales (Santiago)
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors'
@@ -32,91 +33,114 @@
         let markers = [];
 
         // URL del archivo CSV (cambiar si es necesario)
-        const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQdwp2muQD8wzNNA4i87SOGyiEXNbLL0cFkwq3YlSiwEXjaq88kKc-mXFU-eFlLMwCoSufoKoOTT4eI/pub?output=csv';
+        const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQKCCPRxUwaXo-LXGeUQgZSCzVWZdIYiHNiY51_-u4AG0yODEfv4qd_ErKxQ-6RuQ/pub?gid=599326445&single=true&output=csv';
 
-        // Leer y procesar el CSV
-        Papa.parse(csvUrl, {
-            download: true,
-            header: true,
-            complete: function(results) {
-                const data = results.data; // Filas del CSV
-                if (data.length === 0) {
-                    console.error('El archivo CSV está vacío o no tiene datos válidos.');
-                    return;
+        // Obtener los datos del CSV usando fetch
+        fetch(csvUrl)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
                 }
-
-                data.forEach((row, index) => {
-                    const lat = parseFloat(row.Y); // Columna 'Y' (latitud)
-                    const lon = parseFloat(row.X); // Columna 'X' (longitud)
-                    const name = row.LOCAL || `Punto ${index + 1}`; // Usar columna LOCAL o nombre genérico
-                    const direccion = row.DIRECCIÓN || 'Dirección no disponible'; // Dirección desde la columna A
-                    const local = row.LOCAL || 'No aplica';
-                    const foto = row.FOTO || ''; // Obtener el enlace de la foto, si existe
-
-                    // Validar coordenadas
-                    if (!isNaN(lat) && !isNaN(lon)) {
-                        // Crear contenido del popup
-                        let popupContent = `  
-                            <strong>${name}</strong><br>
-                            Dirección: ${direccion}<br>
-                            Local: ${local}<br>
-                            Lat: ${lat}, Lon: ${lon}
-                        `;
-                        
-                        // Si hay una foto válida, agregarla al contenido del popup
-                        if (foto) {
-                            popupContent += `
-                                <br><strong>Foto:</strong><br>
-                                <img src="${foto}" alt="Imagen del lugar" style="width: 200px; height: auto;">
-                            `;
+                return response.text();
+            })
+            .then(data => {
+                // Parsear los datos del CSV con PapaParse
+                Papa.parse(data, {
+                    header: true,
+                    complete: function(results) {
+                        const data = results.data; // Filas del CSV
+                        if (data.length === 0) {
+                            console.error('El archivo CSV está vacío o no tiene datos válidos.');
+                            return;
                         }
 
-                        const marker = L.marker([lat, lon])
-                            .addTo(map)
-                            .bindPopup(popupContent);
+                        data.forEach((row, index) => {
+                            const lat = parseFloat(row.Y); // Columna 'Y' (latitud)
+                            const lon = parseFloat(row.X); // Columna 'X' (longitud)
+                            const name = row.LOCAL || `Punto ${index + 1}`; // Usar columna LOCAL o nombre genérico
+                            const direccion = row.DIRECCIÓN || 'Dirección no disponible'; // Dirección desde la columna A
+                            const local = row.LOCAL || 'No aplica';
+                            const foto = row.FOTO || ''; // Obtener el enlace de la foto, si existe
 
-                        markers.push(marker); // Guardar marcador en el array
-                    } else {
-                        console.warn(`Coordenadas inválidas en fila ${index + 1}: ${JSON.stringify(row)}`);
+                            // Validar coordenadas
+                            if (!isNaN(lat) && !isNaN(lon)) {
+                                // Crear contenido del popup
+                                let popupContent = `  
+                                    <strong>${name}</strong><br>
+                                    Dirección: ${direccion}<br>
+                                    Local: ${local}<br>
+                                    Lat: ${lat}, Lon: ${lon}
+                                `;
+
+                                // Si hay una foto válida, agregarla al contenido del popup
+                                if (foto) {
+                                    popupContent += `
+                                        <br><strong>Foto:</strong><br>
+                                        <img src="${foto}" alt="Imagen del lugar" style="width: 200px; height: auto;">
+                                    `;
+                                }
+
+                                const marker = L.marker([lat, lon])
+                                    .addTo(map)
+                                    .bindPopup(popupContent);
+
+                                markers.push({
+                                    lat: lat,
+                                    lon: lon,
+                                    properties: { name, direccion, local, foto }
+                                });
+                            } else {
+                                console.warn(`Coordenadas inválidas en fila ${index + 1}: ${JSON.stringify(row)}`);
+                            }
+                        });
+                    },
+                    error: function(error) {
+                        console.error('Error al procesar el CSV:', error);
                     }
                 });
-            },
-            error: function(error) {
-                console.error('Error al procesar el CSV:', error);
-            }
-        });
+            })
+            .catch(error => {
+                console.error('There has been a problem with your fetch operation:', error);
+            });
 
-        // Función para exportar los puntos visibles a SHP
-        document.getElementById('exportButton').addEventListener('click', function() {
-            // Crear un objeto GeoJSON a partir de los puntos del mapa
+        // Función para convertir a KMZ
+        document.getElementById('kmzButton').addEventListener('click', function() {
             const geojson = {
                 type: "FeatureCollection",
-                features: markers.map(marker => {
-                    const latLng = marker.getLatLng();
-                    return {
-                        type: "Feature",
-                        properties: {
-                            name: marker.getPopup().getContent()
-                        },
-                        geometry: {
-                            type: "Point",
-                            coordinates: [latLng.lng, latLng.lat]
-                        }
-                    };
-                })
+                features: markers.map(marker => ({
+                    type: "Feature",
+                    properties: marker.properties,
+                    geometry: {
+                        type: "Point",
+                        coordinates: [marker.lon, marker.lat]
+                    }
+                }))
             };
 
-            // Verificar si shpjs está correctamente cargado
-            if (typeof shp === 'undefined') {
-                console.error('shpjs no se ha cargado correctamente.');
-                return;
-            }
+            const kml = tokml(geojson);
+            const zip = new JSZip();
+            zip.file("doc.kml", kml);
+            zip.generateAsync({ type: "blob" }).then(function(content) {
+                saveAs(content, "terrazas_providencia.kmz");
+            });
+        });
 
-            // Usar shpjs para convertir el GeoJSON a SHP
-            const zip = shp.write(geojson);
+        // Función para descargar GeoJSON
+        document.getElementById('geojsonButton').addEventListener('click', function() {
+            const geojson = {
+                type: "FeatureCollection",
+                features: markers.map(marker => ({
+                    type: "Feature",
+                    properties: marker.properties,
+                    geometry: {
+                        type: "Point",
+                        coordinates: [marker.lon, marker.lat]
+                    }
+                }))
+            };
 
-            // Guardar el archivo SHP como un .zip
-            saveAs(zip, 'terrazas_providencia.zip');
+            const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: "application/json" });
+            saveAs(blob, "terrazas_providencia.geojson");
         });
     </script>
 </body>
