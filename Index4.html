@@ -1,126 +1,123 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GeoJSON to Shapefile Converter</title>
-    <script src="https://cdn.jsdelivr.net/npm/@mapbox/shp-write@0.4.3/shpwrite.min.js"></script>
+    <title>Terrazas Providencia</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tokml@0.4.0/tokml.min.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        .container {
-            max-width: 500px;
-            margin: auto;
-            text-align: center;
-        }
-        input, select {
-            margin: 10px 0;
-            padding: 8px;
-        }
-        button {
-            padding: 10px 20px;
-            background-color: #007BFF;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        #downloadButton {
-            display: none;
-            margin-top: 10px;
-        }
+        #map { height: 600px; width: 100%; }
+        .download-button { margin-top: 10px; display: block; text-align: center; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>GeoJSON to Shapefile Converter</h1>
-        <input type="file" id="geojsonFile" accept=".geojson">
-        <br>
-        <label for="geometryType">Select Geometry Type:</label>
-        <select id="geometryType">
-            <option value="point">Point</option>
-            <option value="multipoint">MultiPoint</option>
-            <option value="polygon">Polygon</option>
-            <option value="polyline">Polyline</option>
-        </select>
-        <br>
-        <button onclick="processGeoJSON()">Ejecutar conversión</button>
-        <button id="downloadButton" onclick="downloadShapefile()">Descargar Shapefile</button>
-        <p id="status"></p>
-    </div>
-
+    <h1>Terrazas Gastronómicas Providencia</h1>
+    <div id="map"></div>
+    <button id="kmzButton" class="download-button">Descargar KMZ</button>
+    <button id="geojsonButton" class="download-button">Descargar GeoJSON</button>
     <script>
-        let convertedBlob = null; // Variable global para almacenar el archivo generado
+        // Inicializar el mapa
+        const map = L.map('map').setView([-33.433333, -70.616667], 14.4);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
 
-        function processGeoJSON() {
-            const fileInput = document.getElementById('geojsonFile');
-            const geometryType = document.getElementById('geometryType').value;
-            const status = document.getElementById('status');
-            const downloadButton = document.getElementById('downloadButton');
+        let markers = [];
+        const htmlUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQKCCPRxUwaXo-LXGeUQgZSCzVWZdIYiHNiY51_-u4AG0yODEfv4qd_ErKxQ-6RuQ/pubhtml';
 
-            if (!fileInput.files.length) {
-                status.textContent = 'Please upload a GeoJSON file.';
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = function (event) {
-                try {
-                    // Intenta parsear el GeoJSON
-                    const geojson = JSON.parse(event.target.result);
-
-                    // Validar estructura básica de GeoJSON
-                    if (geojson.type !== "FeatureCollection" || !Array.isArray(geojson.features)) {
-                        throw new Error("Invalid GeoJSON structure. Ensure it is a FeatureCollection.");
-                    }
-
-                    // Filtrar las features según el tipo seleccionado
-                    const filteredFeatures = geojson.features.filter(feature => 
-                        feature.geometry && feature.geometry.type.toLowerCase() === geometryType.toLowerCase()
-                    );
-
-                    if (filteredFeatures.length === 0) {
-                        throw new Error(`No features of type "${geometryType}" found in the GeoJSON.`);
-                    }
-
-                    const filteredGeoJSON = {
-                        type: "FeatureCollection",
-                        features: filteredFeatures
-                    };
-
-                    // Generar el archivo ZIP del Shapefile y almacenar la referencia global
-                    convertedBlob = shpwrite.zip(filteredGeoJSON);
-
-                    // Actualizar estado y mostrar el botón de descarga
-                    status.textContent = 'Conversión exitosa. Ahora puedes descargar el Shapefile.';
-                    downloadButton.style.display = 'inline-block';
-                } catch (error) {
-                    console.error("Error processing GeoJSON:", error);
-                    status.textContent = `Error: ${error.message}`;
+        // Obtener la tabla HTML de Google Sheets
+        fetch(htmlUrl)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
                 }
-            };
-            reader.readAsText(fileInput.files[0]);
-        }
+                return response.text();
+            })
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const table = doc.querySelector('table'); // Seleccionar la tabla
+                if (!table) {
+                    console.error('No se encontró una tabla en el documento HTML.');
+                    return;
+                }
 
-        function downloadShapefile() {
-            if (convertedBlob instanceof ArrayBuffer) {
-                const blob = new Blob([convertedBlob], { type: "application/zip" }); // Crear un Blob válido
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'geojson-to-shapefile.zip';
-                a.click();
-                URL.revokeObjectURL(url); // Liberar la URL
-            } else {
-                console.error("Error: Archivo convertido no es válido.");
-                alert("Ocurrió un error al descargar el archivo. Por favor, intenta nuevamente.");
-            }
-        }
+                // Extraer filas de la tabla
+                const rows = table.querySelectorAll('tbody tr');
+                rows.forEach((row, index) => {
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length >= 4) {
+                        const lat = parseFloat(cells[0].innerText); // Primera columna para la latitud
+                        const lon = parseFloat(cells[1].innerText); // Segunda columna para la longitud
+                        const name = cells[2].innerText || `Punto ${index + 1}`;
+                        const direccion = cells[3].innerText || 'Dirección no disponible';
+
+                        // Validar coordenadas
+                        if (!isNaN(lat) && !isNaN(lon)) {
+                            // Crear marcador
+                            const circle = L.circleMarker([lat, lon], {
+                                color: 'blue',
+                                radius: 4,
+                                fillOpacity: 0.8,
+                                weight: 0
+                            }).addTo(map).bindPopup(`<strong>${name}</strong><br>Dirección: ${direccion}`);
+                            markers.push({
+                                lat: lat,
+                                lon: lon,
+                                properties: { name, direccion }
+                            });
+                        }
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('Error al procesar el HTML:', error);
+            });
+
+        // Función para convertir a KMZ
+        document.getElementById('kmzButton').addEventListener('click', function() {
+            const geojson = {
+                type: "FeatureCollection",
+                features: markers.map(marker => ({
+                    type: "Feature",
+                    properties: marker.properties,
+                    geometry: {
+                        type: "Point",
+                        coordinates: [marker.lon, marker.lat]
+                    }
+                }))
+            };
+
+            const kml = tokml(geojson);
+            const zip = new JSZip();
+            zip.file("doc.kml", kml);
+            zip.generateAsync({ type: "blob" }).then(function(content) {
+                saveAs(content, "terrazas_providencia.kmz");
+            });
+        });
+
+        // Función para descargar GeoJSON
+        document.getElementById('geojsonButton').addEventListener('click', function() {
+            const geojson = {
+                type: "FeatureCollection",
+                features: markers.map(marker => ({
+                    type: "Feature",
+                    properties: marker.properties,
+                    geometry: {
+                        type: "Point",
+                        coordinates: [marker.lon, marker.lat]
+                    }
+                }))
+            };
+
+            const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: "application/json" });
+            saveAs(blob, "terrazas_providencia.geojson");
+        });
     </script>
 </body>
 </html>
-
