@@ -80,27 +80,32 @@
                                     `;
                                 }
 
-                                const marker = L.marker([lat, lon])
-                                    .addTo(map)
-                                    .bindPopup(popupContent);
+                                 // Crear un círculo rojo en lugar de un marcador
+                            const circle = L.circleMarker([lat, lon], {
+                                color: 'red',
+                                radius: 8, // Tamaño del círculo
+                                fillOpacity: 0.6
+                            })
+                                .addTo(map)
+                                .bindPopup(popupContent);
 
-                                markers.push({
-                                    lat: lat,
-                                    lon: lon,
-                                    properties: { name, direccion, local, foto }
-                                });
-                            } else {
-                                console.warn(`Coordenadas inválidas en fila ${index + 1}: ${JSON.stringify(row)}`);
-                            }
-                        });
-                    },
-                    error: function(error) {
-                        console.error('Error al procesar el CSV:', error);
-                    }
-                });
-            })
-            .catch(error => {
-                console.error('There has been a problem with your fetch operation:', error);
+                            markers.push({
+                                lat: lat,
+                                lon: lon,
+                                properties: { name, direccion, local, foto }
+                            });
+                        } else {
+                            console.warn(`Coordenadas inválidas en fila ${index + 1}: ${JSON.stringify(row)}`);
+                        }
+                    });
+                },
+                error: function(error) {
+                    console.error('Error al procesar el CSV:', error);
+                }
+            });
+        })
+        .catch(error => {
+            console.error('There has been a problem with your fetch operation:', error);
             });
 
         // Función para convertir a KMZ
