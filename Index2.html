@@ -63,10 +63,10 @@
         let markers = [];
 
         // URL del archivo CSV (cambiar si es necesario)
-        const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQKCCPRxUwaXo-LXGeUQgZSCzVWZdIYiHNiY51_-u4AG0yODEfv4qd_ErKxQ-6RuQ/pub?output=csv';
+        const xlsxUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQKCCPRxUwaXo-LXGeUQgZSCzVWZdIYiHNiY51_-u4AG0yODEfv4qd_ErKxQ-6RuQ/pub?output=xlsx';
 
         // Obtener los datos del CSV usando fetch
-        fetch(csvUrl)
+        fetch(xlsxUrl)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
