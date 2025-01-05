@@ -33,64 +33,73 @@
         let markers = [];
 
         // URL del archivo CSV (cambiar si es necesario)
-        const csvUrl = 'https://cors-anywhere.herokuapp.com/https://docs.google.com/spreadsheets/d/e/2PACX-1vQQwiNO1dZQg78m4X9fRe6MTZWioBXd0kJuUEKMZGwCZx9ZrhA5de20VDaHr5ySVQ/pub?gid=895076813&single=true&output=csv';
-
+        const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQQwiNO1dZQg78m4X9fRe6MTZWioBXd0kJuUEKMZGwCZx9ZrhA5de20VDaHr5ySVQ/pub?gid=895076813&single=true&output=csv';
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(csvUrl)}`;
 
         // Leer y procesar el CSV
-        Papa.parse(csvUrl, {
-            download: true,
-            header: true,
-            complete: function(results) {
-                const data = results.data; // Filas del CSV
-                if (data.length === 0) {
-                    console.error('El archivo CSV está vacío o no tiene datos válidos.');
-                    return;
-                }
-
-                data.forEach((row, index) => {
-                    const lat = parseFloat(row.Y); // Columna 'Y' (latitud)
-                    const lon = parseFloat(row.X); // Columna 'X' (longitud)
-                    const name = row.LOCAL || `Punto ${index + 1}`; // Usar columna LOCAL o nombre genérico
-                    const direccion = row.DIRECCIÓN || 'Dirección no disponible'; // Dirección desde la columna A
-                    const local = row.LOCAL || 'No aplica';
-                    const foto = row.FOTO || ''; // Obtener el enlace de la foto, si existe
-
-                    // Validar coordenadas
-                    if (!isNaN(lat) && !isNaN(lon)) {
-                        // Crear contenido del popup
-                        let popupContent = `  
-                            <strong>${name}</strong><br>
-                            Dirección: ${direccion}<br>
-                            Local: ${local}<br>
-                            Lat: ${lat}, Lon: ${lon}
-                        `;
-
-                        // Si hay una foto válida, agregarla al contenido del popup
-                        if (foto) {
-                            popupContent += `
-                                <br><strong>Foto:</strong><br>
-                                <img src="${foto}" alt="Imagen del lugar" style="width: 200px; height: auto;">
-                            `;
+        fetch(proxyUrl)
+            .then(response => {
+                if (response.ok) return response.json();
+                throw new Error('Error al obtener el archivo CSV');
+            })
+            .then(data => {
+                Papa.parse(data.contents, {
+                    header: true,
+                    complete: function(results) {
+                        const data = results.data; // Filas del CSV
+                        if (data.length === 0) {
+                            console.error('El archivo CSV está vacío o no tiene datos válidos.');
+                            return;
                         }
 
-                        const marker = L.marker([lat, lon])
-                            .addTo(map)
-                            .bindPopup(popupContent);
+                        data.forEach((row, index) => {
+                            const lat = parseFloat(row.Y); // Columna 'Y' (latitud)
+                            const lon = parseFloat(row.X); // Columna 'X' (longitud)
+                            const name = row.LOCAL || `Punto ${index + 1}`; // Usar columna LOCAL o nombre genérico
+                            const direccion = row.DIRECCIÓN || 'Dirección no disponible'; // Dirección desde la columna A
+                            const local = row.LOCAL || 'No aplica';
+                            const foto = row.FOTO || ''; // Obtener el enlace de la foto, si existe
 
-                        markers.push({
-                            lat: lat,
-                            lon: lon,
-                            properties: { name, direccion, local, foto }
+                            // Validar coordenadas
+                            if (!isNaN(lat) && !isNaN(lon)) {
+                                // Crear contenido del popup
+                                let popupContent = `  
+                                    <strong>${name}</strong><br>
+                                    Dirección: ${direccion}<br>
+                                    Local: ${local}<br>
+                                    Lat: ${lat}, Lon: ${lon}
+                                `;
+
+                                // Si hay una foto válida, agregarla al contenido del popup
+                                if (foto) {
+                                    popupContent += `
+                                        <br><strong>Foto:</strong><br>
+                                        <img src="${foto}" alt="Imagen del lugar" style="width: 200px; height: auto;">
+                                    `;
+                                }
+
+                                const marker = L.marker([lat, lon])
+                                    .addTo(map)
+                                    .bindPopup(popupContent);
+
+                                markers.push({
+                                    lat: lat,
+                                    lon: lon,
+                                    properties: { name, direccion, local, foto }
+                                });
+                            } else {
+                                console.warn(`Coordenadas inválidas en fila ${index + 1}: ${JSON.stringify(row)}`);
+                            }
                         });
-                    } else {
-                        console.warn(`Coordenadas inválidas en fila ${index + 1}: ${JSON.stringify(row)}`);
+                    },
+                    error: function(error) {
+                        console.error('Error al procesar el CSV:', error);
                     }
                 });
-            },
-            error: function(error) {
-                console.error('Error al procesar el CSV:', error);
-            }
-        });
+            })
+            .catch(error => {
+                console.error('Error al acceder al proxy:', error);
+            });
 
         // Función para convertir a KMZ
         document.getElementById('kmzButton').addEventListener('click', function() {
