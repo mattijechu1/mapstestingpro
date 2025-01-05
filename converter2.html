@@ -32,8 +32,8 @@
         // Almacenar los puntos para exportarlos
         let markers = [];
 
-        // URL del archivo CSV (cambiar si es necesario)
-       const csvUrl = 'https://cors-anywhere.herokuapp.com/https://docs.google.com/spreadsheets/d/e/2PACX-1vQKCCPRxUwaXo-LXGeUQgZSCzVWZdIYiHNiY51_-u4AG0yODEfv4qd_ErKxQ-6RuQ/pub?gid=599326445&single=true&output=csv';
+        // URL del archivo CSV (cambiar si es necesario) - Usando AllOrigins como proxy
+        const csvUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent('https://docs.google.com/spreadsheets/d/e/2PACX-1vQKCCPRxUwaXo-LXGeUQgZSCzVWZdIYiHNiY51_-u4AG0yODEfv4qd_ErKxQ-6RuQ/pub?gid=599326445&single=true&output=csv');
 
         // Leer y procesar el CSV
         Papa.parse(csvUrl, {
@@ -133,5 +133,3 @@
     </script>
 </body>
 </html>
-
-        
