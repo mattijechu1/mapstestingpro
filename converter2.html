@@ -6,7 +6,6 @@
     <title>Terrazas Providencia</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tokml@0.4.0/tokml.min.js"></script>
@@ -32,35 +31,31 @@
         // Almacenar los puntos para exportarlos
         let markers = [];
 
-        // URL del archivo CSV (cambiar si es necesario)
-        const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQQwiNO1dZQg78m4X9fRe6MTZWioBXd0kJuUEKMZG-wCZx-9ZrhA5de20VDaHr5ySVQ/pub?output=csv';
+        // URL del Google Sheet publicado
+        const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQQwiNO1dZQg78m4X9fRe6MTZWioBXd0kJuUEKMZG-wCZx-9ZrhA5de20VDaHr5ySVQ/pubhtml?gid=895076813&single=true';
 
-        // Leer y procesar el CSV
-        Papa.parse(csvUrl, {
-            download: true,
-            header: true,
-            complete: function(results) {
-                const data = results.data; // Filas del CSV
-                if (data.length === 0) {
-                    console.error('El archivo CSV está vacío o no tiene datos válidos.');
-                    return;
-                }
+        // Obtener los datos de la tabla HTML publicada
+        fetch(sheetUrl)
+            .then(response => response.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const rows = doc.querySelectorAll('table tbody tr');
 
-                data.forEach((row, index) => {
-                    const lat = parseFloat(row.Y); // Columna 'Y' (latitud)
-                    const lon = parseFloat(row.X); // Columna 'X' (longitud)
-                    const name = row.LOCAL || `Punto ${index + 1}`; // Usar columna LOCAL o nombre genérico
-                    const direccion = row.DIRECCIÓN || 'Dirección no disponible'; // Dirección desde la columna A
-                    const local = row.LOCAL || 'No aplica';
-                    const foto = row.FOTO || ''; // Obtener el enlace de la foto, si existe
+                rows.forEach((row, index) => {
+                    const cells = row.querySelectorAll('td');
+                    const lat = parseFloat(cells[1]?.textContent.trim()); // Latitud (columna Y)
+                    const lon = parseFloat(cells[2]?.textContent.trim()); // Longitud (columna X)
+                    const name = cells[0]?.textContent.trim() || `Punto ${index + 1}`; // Columna LOCAL
+                    const direccion = cells[3]?.textContent.trim() || 'Dirección no disponible'; // Dirección
+                    const foto = cells[4]?.textContent.trim(); // Enlace a la foto (si aplica)
 
                     // Validar coordenadas
                     if (!isNaN(lat) && !isNaN(lon)) {
                         // Crear contenido del popup
-                        let popupContent = `  
+                        let popupContent = `
                             <strong>${name}</strong><br>
                             Dirección: ${direccion}<br>
-                            Local: ${local}<br>
                             Lat: ${lat}, Lon: ${lon}
                         `;
 
@@ -79,17 +74,14 @@
                         markers.push({
                             lat: lat,
                             lon: lon,
-                            properties: { name, direccion, local, foto }
+                            properties: { name, direccion, foto }
                         });
                     } else {
-                        console.warn(`Coordenadas inválidas en fila ${index + 1}: ${JSON.stringify(row)}`);
+                        console.warn(`Coordenadas inválidas en fila ${index + 1}`);
                     }
                 });
-            },
-            error: function(error) {
-                console.error('Error al procesar el CSV:', error);
-            }
-        });
+            })
+            .catch(error => console.error('Error al obtener los datos de la hoja de Google:', error));
 
         // Función para convertir a KMZ
         document.getElementById('kmzButton').addEventListener('click', function() {
