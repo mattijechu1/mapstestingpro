@@ -20,40 +20,39 @@
 
 <style>
     body {
-        text-align: center; /* Centra el título */
+        text-align: center; 
     }
 
     h1 {
-        text-align: center; /* Asegura que el título esté centrado */
+        text-align: center; 
     }
 
     .download-button {
-        display: inline-block; /* Hace que los botones se alineen en línea */
-        margin-top: 10px; /* Espacio superior entre los botones */
-        text-align: center; /* Centra el texto dentro de los botones */
-        padding: 10px 20px; /* Relleno de los botones */
-        background-color: #007BFF; /* Color de fondo */
-        color: white; /* Color del texto */
-        border: none; /* Elimina el borde por defecto */
-        border-radius: 5px; /* Bordes redondeados */
-        cursor: pointer; /* Aparece como puntero al pasar el mouse */
+        display: inline-block; 
+        margin-top: 10px; 
+        text-align: center; 
+        padding: 10px 20px; 
+        background-color: #007BFF; 
+        color: white; 
+        border: none; 
+        border-radius: 5px; 
+        cursor: pointer; 
     }
 
     .download-button:hover {
-        background-color: #0056b3; /* Color de fondo cuando el botón está en hover */
+        background-color: #0056b3; 
     }
 
     .leaflet-control-layers-list {
-        text-align: left; /* Alinea el texto del control de capas a la izquierda */
+        text-align: left; 
     }
 
     #map {
         height: 600px;
         width: 100%;
-        margin-top: 20px; /* Espacio superior del mapa */
+        margin-top: 20px; 
     }
-</style>
-    
+</style>   
 </head>
 <body>
     <h1>Terrazas Gastronómicas Providencia</h1>
@@ -66,8 +65,6 @@
         maxZoom: 19,
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
-
-    // Añadir barra de búsqueda (Control Geocoder)
     const geocoder = L.Control.geocoder({
         defaultMarkGeocode: false
     })
@@ -84,7 +81,6 @@
         })
         .addTo(map);
 
-    // Reubicar la barra de búsqueda arriba del control de zoom
     const geocoderContainer = geocoder.getContainer();
     const zoomControl = document.querySelector('.leaflet-control-zoom');
     zoomControl.parentNode.insertBefore(geocoderContainer, zoomControl);
@@ -96,7 +92,6 @@
         Levantamiento_2024: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQKCCPRxUwaXo-LXGeUQgZSCzVWZdIYiHNiY51_-u4AG0yODEfv4qd_ErKxQ-6RuQ/pub?gid=1688971863&single=true&output=csv',
         'DIDEL 2023': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQKCCPRxUwaXo-LXGeUQgZSCzVWZdIYiHNiY51_-u4AG0yODEfv4qd_ErKxQ-6RuQ/pub?gid=1456784452&single=true&output=csv'
     };
-
 
     const layers = {};
     const markers = {};
@@ -214,7 +209,6 @@
             saveAs(blob, `${activeLayer}.geojson`);
         }
     }
-
     document.getElementById('kmzButton').addEventListener('click', () => downloadData('KMZ'));
     document.getElementById('geojsonButton').addEventListener('click', () => downloadData('GeoJSON'));
   </script>
