@@ -121,6 +121,7 @@
                             const direccion = row.DIRECCIÓN || 'Dirección no disponible';
                             const local = row.LOCAL || 'No aplica';
                             const razon = row.RAZON_SOCIAL||'';
+                            const patente = row.PATENTE ||'';
                             const foto = row.FOTO || '';
 
                             if (!isNaN(lat) && !isNaN(lon)) {
@@ -129,6 +130,7 @@
                                     Dirección: ${direccion}<br>
                                     Lat: ${lat}, Lon: ${lon}<br>
                                     Razon: ${razon}<br>
+                                    Patente: ${patente}<br>
                                     Local: ${local}<br>
                                     ${foto ? `<br><img src="${foto}" style="width:200px; height:auto;">` : ''}`;
                                 const circle = L.circleMarker([lat, lon], {
@@ -145,7 +147,7 @@
                                 markers[groupName].push({
                                     lat,
                                     lon,
-                                    properties: { name, direccion, local, razon, foto }
+                                    properties: { name, direccion, local, razon, patente, foto}
                                 });
                             }
                         });
