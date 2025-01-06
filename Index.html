@@ -124,18 +124,32 @@
                             const patente = row.PATENTE ||'';
                             const nombre = row.NOMBRE ||'';
                             const rol = row.ROL ||'';
+                            const rut = row.RUT_EMPRESA ||'';
+                            const razonr = row.Razón_Social ||'';
+                            const actividades = row.Actividades ||'';
+                            const fecha = row.Fecha_Inicio_Negocio ||'';
+                            const telefono = row.Teléfono_Contribuyente ||'';
+                            const correo = row.Correo_Negocio ||;	
+                            const MT2BNUP = row.MTS2_BNUP || '';
                             const foto = row.FOTO || '';
 
                             if (!isNaN(lat) && !isNaN(lon)) {
                                 const popupContent = 
                                     `<strong>${name}</strong><br>
                                     Dirección: ${direccion}<br>
+                                    Local: ${local}<br>
                                     Lat: ${lat}, Lon: ${lon}<br>
                                     Razon: ${razon}<br>
                                     Patente: ${patente}<br>
                                     Nombre: ${nombre}<br>
                                     Rol: ${rol}<br>
-                                    Local: ${local}<br>
+                                    Rut: ${rut}<br>
+                                    Razon social: ${razonr}<br>
+                                    Actividades: ${actividades}<br>
+                                    Fecha: ${fecha}<br>
+                                    Teléfono: ${telefono}<br>
+                                    Correo:${correo}<br>
+                                    Metros cuadrados BNUP: ${MT2BNUP}<br>
                                     ${foto ? `<br><img src="${foto}" style="width:200px; height:auto;">` : ''}`;
                                 const circle = L.circleMarker([lat, lon], {
                                     color: 'blue',
@@ -151,7 +165,7 @@
                                 markers[groupName].push({
                                     lat,
                                     lon,
-                                    properties: { name, direccion, local, razon, patente, nombre, rol, foto}
+                                    properties: { name, direccion, local, razon, patente, nombre, rol, rut, razonr, actividades, fecha, telefono, correo, MT2BNUP, foto}
                                 });
                             }
                         });
