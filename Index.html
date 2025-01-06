@@ -120,14 +120,16 @@
                             const name = row.LOCAL || `Punto ${index + 1}`;
                             const direccion = row.DIRECCIÓN || 'Dirección no disponible';
                             const local = row.LOCAL || 'No aplica';
+                            const razon = row.'RAZON SOCIAL'||;
+                            
                             const foto = row.FOTO || '';
 
                             if (!isNaN(lat) && !isNaN(lon)) {
                                 const popupContent = 
                                     `<strong>${name}</strong><br>
                                     Dirección: ${direccion}<br>
+                                    Lat: ${lat}, Lon: ${lon}<br>
                                     Local: ${local}<br>
-                                    Lat: ${lat}, Lon: ${lon}
                                     ${foto ? `<br><img src="${foto}" style="width:200px; height:auto;">` : ''}`;
                                 const circle = L.circleMarker([lat, lon], {
                                     color: 'blue',
