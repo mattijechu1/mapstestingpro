@@ -62,25 +62,6 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
 }).addTo(map);
 
-L.Control.geocoder({
-    defaultMarkGeocode: false
-})
-.on('markgeocode', function(e) {
-    const bbox = e.geocode.bbox;
-    const poly = L.polygon([
-        [bbox.getSouthEast().lat, bbox.getSouthEast().lng],
-        [bbox.getNorthEast().lat, bbox.getNorthEast().lng],
-        [bbox.getNorthWest().lat, bbox.getNorthWest().lng],
-        [bbox.getSouthWest().lat, bbox.getSouthWest().lng]
-    ]);
-    map.fitBounds(poly.getBounds());
-})
-.addTo(map);
-
-
-document.querySelector('.leaflet-control-geocoder').style.right = '10px'; 
-document.querySelector('.leaflet-control-geocoder').style.left = 'auto'; 
-      
     const csvUrls = {
         Consolidado: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQKCCPRxUwaXo-LXGeUQgZSCzVWZdIYiHNiY51_-u4AG0yODEfv4qd_ErKxQ-6RuQ/pub?gid=599326445&single=true&output=csv',
         Rentas: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQKCCPRxUwaXo-LXGeUQgZSCzVWZdIYiHNiY51_-u4AG0yODEfv4qd_ErKxQ-6RuQ/pub?gid=1985883002&single=true&output=csv',
