@@ -21,142 +21,128 @@
     <div id="map"></div>
     <button id="kmzButton" class="download-button">Descargar KMZ</button>
     <button id="geojsonButton" class="download-button">Descargar GeoJSON</button>
-    <script>
-        // Inicializar el mapa
-        const map = L.map('map').setView([-33.433333, -70.616667], 14.4); // Coordenadas iniciales
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
+  <script>
+    const map = L.map('map').setView([-33.433333, -70.616667], 14.4);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
 
-        const urls = {
-            "Consolidado": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKCCPRxUwaXo-LXGeUQgZSCzVWZdIYiHNiY51_-u4AG0yODEfv4qd_ErKxQ-6RuQ/pub?gid=599326445&single=true&output=csv",
-            "Rentas": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKCCPRxUwaXo-LXGeUQgZSCzVWZdIYiHNiY51_-u4AG0yODEfv4qd_ErKxQ-6RuQ/pub?gid=1985883002&single=true&output=csv",
-            "Fiscalización": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKCCPRxUwaXo-LXGeUQgZSCzVWZdIYiHNiY51_-u4AG0yODEfv4qd_ErKxQ-6RuQ/pub?gid=1998025027&single=true&output=csv",
-            "Levantamiento 2024": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKCCPRxUwaXo-LXGeUQgZSCzVWZdIYiHNiY51_-u4AG0yODEfv4qd_ErKxQ-6RuQ/pub?gid=1688971863&single=true&output=csv",
-            "DIDEL 2023": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKCCPRxUwaXo-LXGeUQgZSCzVWZdIYiHNiY51_-u4AG0yODEfv4qd_ErKxQ-6RuQ/pub?gid=1456784452&single=true&output=csv"
-        };
+    // URLs de los CSV
+    const csvUrls = {
+        Consolidado: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQKCCPRxUwaXo-LXGeUQgZSCzVWZdIYiHNiY51_-u4AG0yODEfv4qd_ErKxQ-6RuQ/pub?gid=599326445&single=true&output=csv',
+        Rentas: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQKCCPRxUwaXo-LXGeUQgZSCzVWZdIYiHNiY51_-u4AG0yODEfv4qd_ErKxQ-6RuQ/pub?gid=1985883002&single=true&output=csv',
+        Fiscalización: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQKCCPRxUwaXo-LXGeUQgZSCzVWZdIYiHNiY51_-u4AG0yODEfv4qd_ErKxQ-6RuQ/pub?gid=1998025027&single=true&output=csv',
+        Levantamiento 2024: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQKCCPRxUwaXo-LXGeUQgZSCzVWZdIYiHNiY51_-u4AG0yODEfv4qd_ErKxQ-6RuQ/pub?gid=1688971863&single=true&output=csv',
+        'DIDEL 2023': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQKCCPRxUwaXo-LXGeUQgZSCzVWZdIYiHNiY51_-u4AG0yODEfv4qd_ErKxQ-6RuQ/pub?gid=1456784452&single=true&output=csv'
+    };
 
-        const layerGroups = {};
-        let activeLayer = null;
+    // Crear grupos de capas
+    const layers = {};
+    const markers = {};
 
-        // Función para cargar CSV y agregarlo como capa
-        function addLayer(name, url, visible = false) {
-            fetch(url)
-                .then(response => response.text())
-                .then(data => {
-                    const markers = [];
-                    const layerGroup = L.layerGroup();
+    function loadCsv(url, groupName) {
+        return fetch(url)
+            .then(response => response.text())
+            .then(data => {
+                // Parsear datos del CSV con PapaParse
+                Papa.parse(data, {
+                    header: true,
+                    complete: function(results) {
+                        const data = results.data;
+                        if (!data.length) {
+                            console.error(`El archivo CSV de ${groupName} está vacío.`);
+                            return;
+                        }
 
-                    Papa.parse(data, {
-                        header: true,
-                        complete: results => {
-                            results.data.forEach(row => {
-                                const lat = parseFloat(row.Y);
-                                const lon = parseFloat(row.X);
-                                const name = row.LOCAL || "Sin nombre";
-                                const direccion = row.DIRECCIÓN || "Sin dirección";
+                        data.forEach((row, index) => {
+                            const lat = parseFloat(row.Y);
+                            const lon = parseFloat(row.X);
+                            const name = row.LOCAL || `Punto ${index + 1}`;
+                            const direccion = row.DIRECCIÓN || 'Dirección no disponible';
+                            const local = row.LOCAL || 'No aplica';
+                            const foto = row.FOTO || '';
+
+                            if (!isNaN(lat) && !isNaN(lon)) {
                                 const popupContent = `
                                     <strong>${name}</strong><br>
                                     Dirección: ${direccion}<br>
+                                    Local: ${local}<br>
                                     Lat: ${lat}, Lon: ${lon}
+                                    ${foto ? `<br><img src="${foto}" style="width:200px; height:auto;">` : ''}
                                 `;
+                                const circle = L.circleMarker([lat, lon], {
+                                    color: 'blue',
+                                    radius: 4,
+                                    fillOpacity: 0.8,
+                                    weight: 0
+                                }).bindPopup(popupContent);
+                                layers[groupName].addLayer(circle);
 
-                                if (!isNaN(lat) && !isNaN(lon)) {
-                                    const marker = L.circleMarker([lat, lon], {
-                                        color: 'blue',
-                                        radius: 4,
-                                        fillOpacity: 0.8
-                                    }).bindPopup(popupContent);
-                                    marker.addTo(layerGroup);
-                                    markers.push({
-                                        lat, lon, properties: { name, direccion }
-                                    });
+                                if (!markers[groupName]) {
+                                    markers[groupName] = [];
                                 }
-                            });
-
-                            layerGroups[name] = { layer: layerGroup, markers };
-                            if (visible) {
-                                layerGroup.addTo(map);
-                                activeLayer = { name, markers };
+                                markers[groupName].push({
+                                    lat,
+                                    lon,
+                                    properties: { name, direccion, local, foto }
+                                });
                             }
-                        }
-                    });
+                        });
+                    }
                 });
+            });
+    }
+
+    // Inicializar grupos de capas y cargar datos
+    Object.keys(csvUrls).forEach(groupName => {
+        layers[groupName] = L.layerGroup();
+        loadCsv(csvUrls[groupName], groupName);
+    });
+
+    // Añadir la capa Consolidado al mapa por defecto
+    layers['Consolidado'].addTo(map);
+
+    // Crear un controlador de capas
+    const layerControl = L.control.layers(null, layers).addTo(map);
+
+    // Función de descarga dinámica (KMZ y GeoJSON)
+    function downloadData(type) {
+        const activeLayer = Object.keys(layers).find(groupName => map.hasLayer(layers[groupName]));
+        if (!activeLayer) {
+            alert('Por favor, activa una capa para descargar.');
+            return;
         }
 
-        // Agregar capas
-        for (const [name, url] of Object.entries(urls)) {
-            addLayer(name, url, name === "Consolidado");
-        }
+        const geojson = {
+            type: 'FeatureCollection',
+            features: markers[activeLayer].map(marker => ({
+                type: 'Feature',
+                properties: marker.properties,
+                geometry: {
+                    type: 'Point',
+                    coordinates: [marker.lon, marker.lat]
+                }
+            }))
+        };
 
-        // Controlador de capas
-        const layersControl = L.control.layers(null, null, { collapsed: false }).addTo(map);
-        Object.keys(urls).forEach(name => {
-            layersControl.addOverlay(layerGroups[name]?.layer, name);
-        });
-
-        // Listener para cambios de capa activa
-        map.on('overlayadd', e => {
-            const name = e.name;
-            activeLayer = layerGroups[name];
-        });
-
-        map.on('overlayremove', e => {
-            if (activeLayer?.name === e.name) {
-                activeLayer = null;
-            }
-        });
-
-        // Función para descargar GeoJSON
-        document.getElementById('geojsonButton').addEventListener('click', () => {
-            if (!activeLayer) {
-                alert("No hay una capa activa.");
-                return;
-            }
-
-            const geojson = {
-                type: "FeatureCollection",
-                features: activeLayer.markers.map(marker => ({
-                    type: "Feature",
-                    properties: marker.properties,
-                    geometry: {
-                        type: "Point",
-                        coordinates: [marker.lon, marker.lat]
-                    }
-                }))
-            };
-
-            const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: "application/json" });
-            saveAs(blob, `${activeLayer.name}.geojson`);
-        });
-
-        // Función para descargar KMZ
-        document.getElementById('kmzButton').addEventListener('click', () => {
-            if (!activeLayer) {
-                alert("No hay una capa activa.");
-                return;
-            }
-
-            const geojson = {
-                type: "FeatureCollection",
-                features: activeLayer.markers.map(marker => ({
-                    type: "Feature",
-                    properties: marker.properties,
-                    geometry: {
-                        type: "Point",
-                        coordinates: [marker.lon, marker.lat]
-                    }
-                }))
-            };
-
+        if (type === 'KMZ') {
             const kml = tokml(geojson);
             const zip = new JSZip();
-            zip.file("doc.kml", kml);
-            zip.generateAsync({ type: "blob" }).then(content => {
-                saveAs(content, `${activeLayer.name}.kmz`);
+            zip.file('doc.kml', kml);
+            zip.generateAsync({ type: 'blob' }).then(content => {
+                saveAs(content, `${activeLayer}.kmz`);
             });
-        });
-    </script>
+        } else if (type === 'GeoJSON') {
+            const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/json' });
+            saveAs(blob, `${activeLayer}.geojson`);
+        }
+    }
+
+    // Añadir eventos de clic para los botones
+    document.getElementById('kmzButton').addEventListener('click', () => downloadData('KMZ'));
+    document.getElementById('geojsonButton').addEventListener('click', () => downloadData('GeoJSON'));
+</script>
+
 </body>
 </html>
