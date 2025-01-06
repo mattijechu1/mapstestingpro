@@ -28,7 +28,6 @@
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    // URLs de los CSV
     const csvUrls = {
         Consolidado: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQKCCPRxUwaXo-LXGeUQgZSCzVWZdIYiHNiY51_-u4AG0yODEfv4qd_ErKxQ-6RuQ/pub?gid=599326445&single=true&output=csv',
         Rentas: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQKCCPRxUwaXo-LXGeUQgZSCzVWZdIYiHNiY51_-u4AG0yODEfv4qd_ErKxQ-6RuQ/pub?gid=1985883002&single=true&output=csv',
@@ -37,7 +36,7 @@
         'DIDEL 2023': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQKCCPRxUwaXo-LXGeUQgZSCzVWZdIYiHNiY51_-u4AG0yODEfv4qd_ErKxQ-6RuQ/pub?gid=1456784452&single=true&output=csv'
     };
 
-    // Crear grupos de capas
+
     const layers = {};
     const markers = {};
 
@@ -45,7 +44,7 @@
         return fetch(url)
             .then(response => response.text())
             .then(data => {
-                // Parsear datos del CSV con PapaParse
+               
                 Papa.parse(data, {
                     header: true,
                     complete: function(results) {
@@ -94,19 +93,16 @@
             });
     }
 
-    // Inicializar grupos de capas y cargar datos
     Object.keys(csvUrls).forEach(groupName => {
         layers[groupName] = L.layerGroup();
         loadCsv(csvUrls[groupName], groupName);
     });
 
-    // Añadir la capa Consolidado al mapa por defecto
+    
     layers['Consolidado'].addTo(map);
 
-    // Crear un controlador de capas
     const layerControl = L.control.layers(null, layers).addTo(map);
 
-    // Función de descarga dinámica (KMZ y GeoJSON)
     function downloadData(type) {
         const activeLayer = Object.keys(layers).find(groupName => map.hasLayer(layers[groupName]));
         if (!activeLayer) {
@@ -139,7 +135,7 @@
         }
     }
 
-    // Añadir eventos de clic para los botones
+    
     document.getElementById('kmzButton').addEventListener('click', () => downloadData('KMZ'));
     document.getElementById('geojsonButton').addEventListener('click', () => downloadData('GeoJSON'));
 </script>
