@@ -121,7 +121,6 @@
                             const direccion = row.DIRECCIÓN || 'Dirección no disponible';
                             const local = row.LOCAL || 'No aplica';
                             const razon = row.'RAZON SOCIAL'||;
-                            
                             const foto = row.FOTO || '';
 
                             if (!isNaN(lat) && !isNaN(lon)) {
@@ -129,6 +128,7 @@
                                     `<strong>${name}</strong><br>
                                     Dirección: ${direccion}<br>
                                     Lat: ${lat}, Lon: ${lon}<br>
+                                    Razon: ${razon}<br>
                                     Local: ${local}<br>
                                     ${foto ? `<br><img src="${foto}" style="width:200px; height:auto;">` : ''}`;
                                 const circle = L.circleMarker([lat, lon], {
