@@ -213,6 +213,25 @@
     }
     document.getElementById('kmzButton').addEventListener('click', () => downloadData('KMZ'));
     document.getElementById('geojsonButton').addEventListener('click', () => downloadData('GeoJSON'));
+
+document.getElementById('sheetsButton').addEventListener('click', () => {
+    // Encuentra la capa activa
+    const activeLayer = Object.keys(layers).find(groupName => map.hasLayer(layers[groupName]));
+    if (!activeLayer) {
+        alert('Por favor, activa una capa para descargar.');
+        return;
+    }
+
+    // Obtén la URL del archivo activo desde csvUrls
+    const sheetUrl = csvUrls[activeLayer];
+    if (!sheetUrl) {
+        alert('No se encontró un archivo asociado a la capa activa.');
+        return;
+    }
+
+    // Redirigir a la URL del archivo en formato Google Sheets (Excel)
+    window.open(sheetUrl, '_blank');
+});
   </script>
 </body>
 </html>
