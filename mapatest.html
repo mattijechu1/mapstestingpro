@@ -96,10 +96,10 @@ const layerControl = L.control.layers({
     'OpenStreetMap': baseLayer // Capa base
 }, overlayLayers).addTo(map);
 
-// Cargar opciones del selector dinámicamente
+// Cargar temáticas desde Google Sheets
 const themeSelector = document.getElementById('themeSelector');
-const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQQwiNO1dZQg78m4X9fRe6MTZWioBXd0kJuUEKMZGwCZx9ZrhA5de20VDaHr5ySVQ/pub?gid=0&single=true&output=csv';
-fetch(sheetUrl)
+const themeSheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQQwiNO1dZQg78m4X9fRe6MTZWioBXd0kJuUEKMZGwCZx9ZrhA5de20VDaHr5ySVQ/pub?gid=0&single=true&output=csv';
+fetch(themeSheetUrl)
     .then(response => response.text())
     .then(csvText => {
         const rows = csvText.split('\n').slice(1); // Eliminar encabezado
