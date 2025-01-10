@@ -102,7 +102,7 @@ searchInput.addEventListener('change', () => {
 });
 
 // Referencias de capas dinámicas
-const layers = {};
+const layers = {}; // Objeto para almacenar las capas
 const overlayLayers = {}; // Almacenará las coberturas para el control de capas
 
 // Función para cargar datos desde Google Sheets
@@ -156,14 +156,14 @@ fetch(sheetUrl)
                 layers[theme] = L.layerGroup();
 
                 // Para cada cobertura (columnas C, D, E, etc.), obtener los nombres y URLs
-                for (let i = 2; i < cells.length; i++) {
+                for (let i = 2; i < cells.length; i += 2) { // Ajustado el índice para que sea de dos en dos
                     const coverageName = cells[i]?.trim(); // Nombre de la cobertura (columna C, D, E...)
                     const sheetUrl = cells[i + 1]?.trim(); // URL del archivo (columna D, E, F...)
                     if (coverageName && sheetUrl) {
                         // Cargar los datos de cada capa
                         loadData(sheetUrl, layers[theme]);
 
-                        // Añadir la cobertura al control de capas con el nombre correspondiente
+                        // Añadir la cobertura al control de capas
                         overlayLayers[coverageName] = layers[theme];
                     }
                 }
