@@ -178,31 +178,44 @@ async function downloadKMZ() {
         return;
     }
 
-    const kmz = new JSZip();
-    const kml = `<?xml version="1.0" encoding="UTF-8"?>
-    <kml xmlns="http://www.opengis.net/kml/2.2">
-    <Document>
-    ${activeLayer.map(feature => `
-        <Placemark>
-            <name>${feature.properties.ID || "Sin nombre"}</name>
-            <description>
-                ${Object.entries(feature.properties).map(([key, value]) => `<b>${key}:</b> ${value}`).join('<br>')}
-            </description>
-            <Point>
-                <coordinates>${feature.geometry.coordinates[0]},${feature.geometry.coordinates[1]}</coordinates>
-            </Point>
-        </Placemark>
-    `).join('')}
-    </Document>
-    </kml>`;
+    const escapeXML = (str) =>
+        str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+    const kml = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+${activeLayer
+    .map((feature) => {
+        const properties = feature.properties || {};
+        const coordinates = feature.geometry?.coordinates || [];
+        if (coordinates.length < 2) return ""; // Ignorar geometrías inválidas
+
+        const propsDescription = Object.entries(properties)
+            .map(
+                ([key, value]) => `<b>${escapeXML(key)}:</b> ${escapeXML(value)}`
+            )
+            .join("<br>");
+
+        return `
+<Placemark>
+    <name>${escapeXML(properties.ID || "Sin nombre")}</name>
+    <description>${propsDescription}</description>
+    <Point>
+        <coordinates>${coordinates[0]},${coordinates[1]},0</coordinates>
+    </Point>
+</Placemark>`;
+    })
+    .join("")}
+</Document>
+</kml>`;
+
+    const kmz = new JSZip();
     kmz.file("doc.kml", kml);
     const content = await kmz.generateAsync({ type: "blob" });
 
-    // Crear el enlace para descargar el archivo KMZ
     const link = document.createElement("a");
     link.href = URL.createObjectURL(content);
-    link.download = `${activeCoberturaName}_cobertura.kmz`; // Usar el nombre de la cobertura activa
+    link.download = `${activeCoberturaName}_.kmz`;
     link.click();
 }
 
@@ -221,7 +234,7 @@ function downloadGeoJSON() {
     const geojsonBlob = new Blob([JSON.stringify(geojsonData)], { type: "application/geo+json" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(geojsonBlob);
-    link.download = `${activeCoberturaName}_cobertura.geojson`; // Usar el nombre de la cobertura activa
+    link.download = `${activeCoberturaName}_.geojson`; // Usar el nombre de la cobertura activa
     link.click();
 }
 
