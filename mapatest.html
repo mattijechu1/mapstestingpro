@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa Dinámico con Leaflet</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 97vh;
+            width: 80%;
+	    left: 380px;
+        }
+        #menu {
+            position: absolute;
+	    height: 95vh;
+            top: 10px;
+	    width: 18%;
+            left: 10px;
+            background: white;
+            padding: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        #menu h3 {
+            margin: 0 0 10px;
+        }
+        .download-section {
+            margin-top: 10px;
+        }
+        .leaflet-top {
+            top: 80px !important; /* Ajustar posición del controlador de zoom */
+        }
+        .leaflet-control-geocoder {
+          
+            top: 10px;
+            left: 300px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+
+<div id="menu">
+    <h3>Seleccione Áreas de Interés</h3>
+    <select id="themeSelector">
+    </select>
+    <div id="layerControls">
+        <!-- Los controles de capas se generarán dinámicamente -->
+    </div>
+    <div class="download-section">
+        <h4>Descargar Información</h4>
+        <button id="downloadKmz">KMZ</button>
+        <button id="downloadGeojson">GeoJSON</button>
+        <button id="downloadExcel">Excel</button>
+    </div>
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// Inicializar el mapa
+const map = L.map('map').setView([-33.45, -70.65], 13); // Coordenadas iniciales (Santiago, Chile)
+
+// Añadir capa base
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: 'Map data © <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
+}).addTo(map);
+
+// Barra de búsqueda con Nominatim
+const searchInput = document.createElement('input');
+searchInput.type = 'text';
+searchInput.placeholder = 'Buscar dirección...';
+searchInput.style.position = 'absolute';
+searchInput.style.top = '16px';
+searchInput.style.left = '400px';
+searchInput.style.zIndex = '1000';
+document.body.appendChild(searchInput);
+
+let currentMarker = null;
+
+searchInput.addEventListener('change', () => {
+    const query = searchInput.value;
+    if (!query) return;
+
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.length > 0) {
+                const { lat, lon, display_name } = data[0];
+
+                if (currentMarker) {
+                    map.removeLayer(currentMarker);
+                }
+
+                currentMarker = L.marker([lat, lon])
+                    .addTo(map)
+                    .bindPopup(`Dirección: ${display_name}<br>Latitud: ${lat}<br>Longitud: ${lon}`)
+                    .openPopup();
+                map.setView([lat, lon], 15);
+            } else {
+                alert('Dirección no encontrada.');
+            }
+        });
+});
+
+// Referencias de capas dinámicas
+const layers = {};
+
+// Función para cargar datos desde Google Sheets
+function loadData(sheetUrl, layerGroup) {
+    fetch(sheetUrl)
+        .then(response => response.text())
+        .then(csvText => {
+            const rows = csvText.split('\n').slice(1);
+            rows.forEach(row => {
+                const [lat, lon, name] = row.split(',');
+                if (lat && lon) {
+                    const marker = L.marker([parseFloat(lat), parseFloat(lon)]).bindPopup(name);
+                    marker.addTo(layerGroup);
+                }
+            });
+        });
+}
+
+// Actualizar capas según temática seleccionada
+const themeSelector = document.getElementById('themeSelector');
+const layerControls = document.getElementById('layerControls');
+
+// Cargar opciones del selector dinámicamente
+const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRroIetgF63mgmWONDiTN8kH3Lb9896dNiTf7E_NieZF9QxZzqn5TUr0rFcjPgROzbyP1QF9mX-PQMB/pub?gid=0&single=true&output=csv';
+fetch(sheetUrl)
+    .then(response => response.text())
+    .then(csvText => {
+        const rows = csvText.split('\n').slice(1);
+        rows.forEach(row => {
+            const cells = row.split(',');
+            const theme = cells[1]?.trim();
+            if (theme) {
+                const option = document.createElement('option');
+                option.value = theme;
+                option.textContent = theme;
+                themeSelector.appendChild(option);
+
+                // Crear grupo de capas para la temática
+                layers[theme] = L.layerGroup();
+
+                // Cargar capas específicas si hay URLs en las columnas restantes
+                for (let i = 2; i < cells.length; i++) {
+                    const layerUrl = cells[i]?.trim();
+                    if (layerUrl) {
+                        loadData(layerUrl, layers[theme]);
+                    }
+                }
+            }
+        });
+    });
+
+themeSelector.addEventListener('change', (e) => {
+    const selectedTheme = e.target.value;
+
+    // Quitar todas las capas
+    Object.values(layers).forEach(layerGroup => map.removeLayer(layerGroup));
+
+    // Añadir la capa seleccionada
+    if (layers[selectedTheme]) {
+        map.addLayer(layers[selectedTheme]);
+    }
+
+    // Actualizar controles de capas
+    layerControls.innerHTML = '';
+    if (layers[selectedTheme]) {
+        layers[selectedTheme].eachLayer(layer => {
+            const layerControl = document.createElement('div');
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = map.hasLayer(layer);
+
+            checkbox.addEventListener('change', () => {
+                if (checkbox.checked) {
+                    map.addLayer(layer);
+                } else {
+                    map.removeLayer(layer);
+                }
+            });
+
+            layerControl.appendChild(checkbox);
+            layerControl.appendChild(document.createTextNode(layer.getPopup()?.getContent() || 'Capa sin nombre'));
+            layerControls.appendChild(layerControl);
+        });
+    }
+});
+
+// Simular descargas (URLs deben ser reemplazadas con las reales)
+document.getElementById('downloadKmz').addEventListener('click', () => {
+    window.open('https://example.com/terrazas.kmz', '_blank');
+});
+document.getElementById('downloadGeojson').addEventListener('click', () => {
+    window.open('https://example.com/terrazas.geojson', '_blank');
+});
+document.getElementById('downloadExcel').addEventListener('click', () => {
+    window.open('https://example.com/terrazas.xlsx', '_blank');
+});
+</script>
+
+</body>
+</html>
