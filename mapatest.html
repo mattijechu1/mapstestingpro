@@ -43,7 +43,6 @@
 <div id="menu">
     <h3>Seleccione Áreas de Interés</h3>
     <select id="themeSelector">
-        <option value="">Seleccione una temática...</option>
     </select>
     <div class="download-section">
         <h4>Descargar Información</h4>
@@ -96,10 +95,10 @@ const layerControl = L.control.layers({
     'OpenStreetMap': baseLayer // Capa base
 }, overlayLayers).addTo(map);
 
-// Cargar temáticas desde Google Sheets
+// Cargar opciones del selector dinámicamente
 const themeSelector = document.getElementById('themeSelector');
-const themeSheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQQwiNO1dZQg78m4X9fRe6MTZWioBXd0kJuUEKMZGwCZx9ZrhA5de20VDaHr5ySVQ/pub?gid=0&single=true&output=csv';
-fetch(themeSheetUrl)
+const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRroIetgF63mgmWONDiTN8kH3Lb9896dNiTf7E_NieZF9QxZzqn5TUr0rFcjPgROzbyP1QF9mX-PQMB/pub?gid=0&single=true&output=csv';
+fetch(sheetUrl)
     .then(response => response.text())
     .then(csvText => {
         const rows = csvText.split('\n').slice(1); // Eliminar encabezado
@@ -118,12 +117,12 @@ fetch(themeSheetUrl)
                 layers[theme] = L.layerGroup();
 
                 // Cargar coberturas asociadas (columnas C, D, E...)
-                for (let i = 2; i < cells.length; i++) {
+                for (let i = 2; i < cells.length; i += 2) { // Ajustado para leer columnas de dos en dos
                     const coverageName = cells[i]?.trim(); // Nombre de la cobertura (columna C, D, E...)
-                    const coverageUrl = cells[i + 1]?.trim(); // URL del archivo (columna D, E, F...)
-                    if (coverageName && coverageUrl) {
+                    const sheetUrl = cells[i + 1]?.trim(); // URL del archivo (columna D, E, F...)
+                    if (coverageName && sheetUrl) {
                         // Cargar los datos de cada capa
-                        loadData(coverageUrl, layers[theme]);
+                        loadData(sheetUrl, layers[theme]);
 
                         // Añadir la cobertura al control de capas
                         overlayLayers[coverageName] = layers[theme];
@@ -136,7 +135,7 @@ fetch(themeSheetUrl)
 // Actualizar capas según temática seleccionada
 themeSelector.addEventListener('change', (e) => {
     const selectedThemeId = e.target.value;
-
+    
     // Limpiar todas las capas anteriores
     map.eachLayer((layer) => {
         if (layer !== baseLayer) {
