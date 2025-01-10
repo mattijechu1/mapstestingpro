@@ -8,8 +8,9 @@
     <style>
         #map { height: 600px; }
         #selector { margin: 10px 0; }
-        #download { margin: 10px 0; }
         img { max-width: 100%; height: auto; margin-top: 10px; border: 1px solid #ccc; }
+        #buttons { margin-top: 10px; }
+        button { padding: 10px; margin-right: 10px; }
     </style>
 </head>
 <body>
@@ -23,18 +24,16 @@
 
 <div id="map"></div>
 
-<div id="download">
-    <button onclick="descargarGeoJSON()">Descargar GeoJSON de la cobertura activa</button>
-    <button onclick="descargarKMZ()">Descargar KMZ de la cobertura activa</button>
+<!-- Botones para descargar en KMZ y GeoJSON -->
+<div id="buttons">
+    <button id="downloadKMZ" onclick="descargarKMZ()">Descargar KMZ</button>
+    <button id="downloadGeoJSON" onclick="descargarGeoJSON()">Descargar GeoJSON</button>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 <script src="https://unpkg.com/papaparse/papaparse.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/tokml@0.4.2/tokml.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip-utils/0.1.0/jszip-utils.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-
+<script src="https://unpkg.com/jszip/dist/jszip.min.js"></script>
+<script src="https://unpkg.com/leaflet-omnivore/leaflet-omnivore.min.js"></script>
 <script>
 // Mapa de Leaflet centrado en Santiago de Chile
 const map = L.map('map').setView([-33.4489, -70.6693], 12); // Centrado en Santiago con zoom nivel 12
@@ -45,20 +44,19 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 // URL de Google Sheets en formato CSV
 const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQTRULBpYlPIfLrNuL-SZ6Zf1kIdBJYF8HKdBLIpMAw69vUNQFRNmEMt_tE3Eq3Ag/pub?gid=389153198&single=true&output=csv";
 
-// Variables globales
-let tematicas = {};
-let layerControl = L.control.layers().addTo(map);
-let coberturaLayers = {};
-let capaActiva = null;
-
-// Obtener datos desde Google Sheets
+// Cargar los datos desde el archivo CSV de Google Sheets
 async function cargarDatosCSV() {
     const response = await fetch(csvUrl);
     const text = await response.text();
     return Papa.parse(text, { header: true, dynamicTyping: true }).data;
 }
 
-// Obtener temáticas y coberturas
+// Variables globales
+let tematicas = {};
+let layerControl = L.control.layers().addTo(map);
+let coberturaLayers = {};
+
+// Obtener datos y organizar las temáticas
 async function obtenerTematicas() {
     const rows = await cargarDatosCSV();
     tematicas = {};
@@ -78,7 +76,7 @@ async function obtenerTematicas() {
     });
 }
 
-// Llenar selector de temáticas
+// Llenar el selector de temáticas
 async function cargarSelector() {
     await obtenerTematicas();
     const tematicaSelect = document.getElementById('tematica');
@@ -90,19 +88,20 @@ async function cargarSelector() {
         tematicaSelect.appendChild(option);
     });
 
+    // Cargar las coberturas de la primera temática por defecto
     if (tematicaSelect.value) {
         cargarCoberturas();
     }
 }
 
-// Cargar coberturas según la temática seleccionada
+// Función para cargar coberturas
 async function cargarCoberturas() {
     const tematicaSelect = document.getElementById('tematica');
     const tematica = tematicaSelect.value;
 
+    // Limpiar capas previas
     Object.values(coberturaLayers).forEach(layer => map.removeLayer(layer));
     coberturaLayers = {};
-    capaActiva = null;
 
     layerControl.remove();
     layerControl = L.control.layers().addTo(map);
@@ -120,6 +119,8 @@ async function cargarCoberturas() {
                 results.data.forEach(point => {
                     if (point.X && point.Y) {
                         const latLng = [point.Y, point.X];
+
+                        // Crear contenido del popup dinámicamente
                         let popupContent = "<b>Detalles:</b><br>";
                         for (const key in point) {
                             if (point[key] && key !== "X" && key !== "Y") {
@@ -137,7 +138,7 @@ async function cargarCoberturas() {
                             fillColor: "blue",
                             fillOpacity: 0.5
                         })
-                        .bindPopup(popupContent)
+                        .bindPopup(popupContent) // Asociar popup al círculo
                         .addTo(coverageLayer);
                     }
                 });
@@ -145,66 +146,49 @@ async function cargarCoberturas() {
                 coberturaLayers[cobertura.nombre] = coverageLayer;
                 layerControl.addOverlay(coverageLayer, cobertura.nombre);
 
+                // Activar la capa por defecto
                 if (cobertura.porDefecto) {
                     coverageLayer.addTo(map);
-                    capaActiva = coverageLayer;
                 }
-
-                coverageLayer.on('add', () => capaActiva = coverageLayer);
             }
         });
     });
 }
 
-// Descargar GeoJSON de la capa activa
-function descargarGeoJSON() {
-    if (!capaActiva) {
-        alert("No hay una capa activa para descargar.");
-        return;
-    }
-
-    const geojson = capaActiva.toGeoJSON();
-    const blob = new Blob([JSON.stringify(geojson)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "cobertura_activa.geojson";
-    a.click();
-
-    URL.revokeObjectURL(url);
-}
-
-// Descargar KMZ de la capa activa
+// Función para descargar la cobertura activa en KMZ
 function descargarKMZ() {
-    if (!capaActiva) {
-        alert("No hay una capa activa para descargar.");
-        return;
-    }
+    const activeLayer = Object.values(coberturaLayers).find(layer => map.hasLayer(layer));
 
-    // Convertir GeoJSON a KML
-    const geojson = capaActiva.toGeoJSON();
-    const kml = tokml(geojson);
-
-    // Crear archivo KMZ (ZIP con KML dentro)
-    const zip = new JSZip();
-    zip.file("cobertura_activa.kml", kml);
-
-    zip.generateAsync({ type: "blob" })
-        .then(function(blob) {
-            // Descargar el archivo KMZ
-            saveAs(blob, "cobertura_activa.kmz");
-        })
-        .catch(function(err) {
-            console.error("Error generando KMZ:", err);
-            alert("Error generando KMZ. Por favor, verifica los datos.");
+    if (activeLayer) {
+        const kmz = new JSZip();
+        const kml = new XMLSerializer().serializeToString(omnivore.kml().read(activeLayer.getLayers()).toKml());
+        kmz.file("coverage.kml", kml);
+        kmz.generateAsync({ type: "blob" }).then(function(content) {
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(content);
+            link.download = "coverage.kmz";
+            link.click();
         });
+    }
 }
 
-// Inicializar el mapa
+// Función para descargar la cobertura activa en GeoJSON
+function descargarGeoJSON() {
+    const activeLayer = Object.values(coberturaLayers).find(layer => map.hasLayer(layer));
+
+    if (activeLayer) {
+        const geojson = activeLayer.toGeoJSON();
+        const blob = new Blob([JSON.stringify(geojson)], { type: "application/geo+json" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "coverage.geojson";
+        link.click();
+    }
+}
+
+// Iniciar con el cargado de temáticas
 cargarSelector();
 </script>
 
 </body>
 </html>
-
