@@ -108,12 +108,23 @@ async function cargarCoberturas() {
                 results.data.forEach(point => {
                     if (point.X && point.Y) {
                         const latLng = [point.Y, point.X];
+
+                        // Crear contenido del popup dinámicamente
+                        let popupContent = "<b>Detalles:</b><br>";
+                        for (const key in point) {
+                            if (point[key] && key !== "X" && key !== "Y") {
+                                popupContent += `<b>${key}:</b> ${point[key]}<br>`;
+                            }
+                        }
+
                         L.circleMarker(latLng, {
                             radius: 5,
                             color: "blue",
                             fillColor: "blue",
                             fillOpacity: 0.5
-                        }).addTo(coverageLayer);
+                        })
+                        .bindPopup(popupContent) // Asociar popup al círculo
+                        .addTo(coverageLayer);
                     }
                 });
 
