@@ -59,6 +59,38 @@
 // Inicializar el mapa
 const map = L.map('map').setView([-33.45, -70.65], 13); // Coordenadas iniciales (Santiago, Chile)
 
+    // Crear control de capas
+const layerControl = L.control.layers({
+    'OpenStreetMap': baseLayer // Capa base
+}, overlayLayers).addTo(map);
+
+// Actualizar capas según temática seleccionada
+themeSelector.addEventListener('change', (e) => {
+    const selectedThemeId = e.target.value;
+    
+    // Limpiar todas las capas anteriores
+    map.eachLayer((layer) => {
+        if (layer !== baseLayer) {
+            map.removeLayer(layer);
+        }
+    });
+
+    // Añadir la capa seleccionada
+    const selectedTheme = Object.keys(layers).find(theme => theme.startsWith(selectedThemeId));
+    if (selectedTheme && layers[selectedTheme]) {
+        map.addLayer(layers[selectedTheme]);
+    }
+
+    // Actualizar el control de capas (overlay)
+    layerControl.removeLayer(overlayLayers); // Eliminar las coberturas anteriores
+    Object.keys(overlayLayers).forEach((coverage) => {
+        if (layers[selectedTheme]) {
+            layerControl.addOverlay(layers[selectedTheme], coverage); // Añadir las nuevas coberturas
+        }
+    });
+});
+
+
 // Añadir capa base
 const baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: 'Map data © <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
@@ -90,37 +122,6 @@ function loadData(sheetUrl, layerGroup) {
         .catch(error => console.error('Error al cargar los datos del Google Sheet:', error));
 }
 
-// Crear control de capas
-const layerControl = L.control.layers({
-    'OpenStreetMap': baseLayer // Capa base
-}, overlayLayers).addTo(map);
-
-// Actualizar capas según temática seleccionada
-themeSelector.addEventListener('change', (e) => {
-    const selectedThemeId = e.target.value;
-    
-    // Limpiar las capas anteriores (excepto la capa base)
-    map.eachLayer((layer) => {
-        if (layer !== baseLayer) {
-            map.removeLayer(layer);
-        }
-    });
-
-    // Añadir la capa de la temática seleccionada
-    const selectedTheme = Object.keys(layers).find(theme => theme.startsWith(selectedThemeId));
-    if (selectedTheme && layers[selectedTheme]) {
-        map.addLayer(layers[selectedTheme]);
-    }
-
-    // Limpiar las coberturas anteriores en el control de capas
-    layerControl._layers = {}; // Reiniciar las capas del control
-    // Añadir las coberturas dinámicamente para la temática seleccionada
-    Object.keys(overlayLayers).forEach((coverage) => {
-        if (layers[selectedTheme]) {
-            layerControl.addOverlay(layers[selectedTheme], coverage); // Añadir las nuevas coberturas
-        }
-    });
-});
 
 
 // Simular descargas (URLs deben ser reemplazadas con las reales)
