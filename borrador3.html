@@ -31,6 +31,9 @@
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 <script src="https://unpkg.com/papaparse/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tokml@0.4.2/tokml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip-utils/0.1.0/jszip-utils.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
 <script>
 // Mapa de Leaflet centrado en Santiago de Chile
@@ -179,28 +182,29 @@ function descargarKMZ() {
         return;
     }
 
+    // Convertir GeoJSON a KML
     const geojson = capaActiva.toGeoJSON();
     const kml = tokml(geojson);
 
+    // Crear archivo KMZ (ZIP con KML dentro)
     const zip = new JSZip();
     zip.file("cobertura_activa.kml", kml);
 
-    zip.generateAsync({ type: "blob" }).then(blob => {
-        const url = URL.createObjectURL(blob);
-
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "cobertura_activa.kmz";
-        a.click();
-
-        URL.revokeObjectURL(url);
-    });
+    zip.generateAsync({ type: "blob" })
+        .then(function(blob) {
+            // Descargar el archivo KMZ
+            saveAs(blob, "cobertura_activa.kmz");
+        })
+        .catch(function(err) {
+            console.error("Error generando KMZ:", err);
+            alert("Error generando KMZ. Por favor, verifica los datos.");
+        });
 }
 
 // Inicializar el mapa
 cargarSelector();
 </script>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </body>
 </html>
+
