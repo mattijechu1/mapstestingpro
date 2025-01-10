@@ -8,6 +8,7 @@
     <style>
         #map { height: 600px; }
         #selector { margin: 10px 0; }
+        img { max-width: 100%; height: auto; margin-top: 10px; border: 1px solid #ccc; }
     </style>
 </head>
 <body>
@@ -113,7 +114,11 @@ async function cargarCoberturas() {
                         let popupContent = "<b>Detalles:</b><br>";
                         for (const key in point) {
                             if (point[key] && key !== "X" && key !== "Y") {
-                                popupContent += `<b>${key}:</b> ${point[key]}<br>`;
+                                if (key === "FOTO" && point[key].startsWith("http")) {
+                                    popupContent += `<img src="${point[key]}" alt="Foto asociada"><br>`;
+                                } else {
+                                    popupContent += `<b>${key}:</b> ${point[key]}<br>`;
+                                }
                             }
                         }
 
