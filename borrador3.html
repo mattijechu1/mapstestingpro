@@ -26,11 +26,15 @@
 <div id="download-buttons">
     <button id="download-kmz" onclick="downloadKMZ()">Descargar KMZ</button>
     <button id="download-geojson" onclick="downloadGeoJSON()">Descargar GeoJSON</button>
+    <button id="download-excel" onclick="downloadExcel()">Descargar Excel</button> <!-- Nuevo botón -->
 </div>
+
 
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 <script src="https://unpkg.com/papaparse/papaparse.min.js"></script>
 <script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script> <!-- Para crear KMZ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+
 
 <script>
 // Mapa de Leaflet centrado en Santiago de Chile
@@ -252,6 +256,27 @@ function downloadGeoJSON() {
     link.href = URL.createObjectURL(geojsonBlob);
     link.download = `${activeCoberturaName}_.geojson`; // Usar el nombre de la cobertura activa
     link.click();
+}
+
+//Función para descargar en Excel
+function downloadExcel() {
+    if (!activeLayer) {
+        alert("No hay cobertura activa para descargar.");
+        return;
+    }
+
+    // Convertir el JSON de la capa activa en un formato adecuado para Excel
+    const excelData = activeLayer.map(feature => {
+        return feature.properties;  // Obtener solo las propiedades para el Excel
+    });
+
+    // Crear una hoja de cálculo de Excel a partir de los datos
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Cobertura");
+
+    // Descargar el archivo Excel
+    XLSX.writeFile(wb, `${activeCoberturaName}_.xlsx`);
 }
 
 // Iniciar con el cargado de temáticas
