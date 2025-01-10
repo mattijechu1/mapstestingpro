@@ -29,7 +29,7 @@
             margin-top: 10px;
         }
         .leaflet-top {
-            top: 80px !important; /* Ajustar posición del controlador de zoom */
+            top: 80px !important;
         }
         .leaflet-control-geocoder {
             top: 10px;
@@ -64,43 +64,6 @@ const baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.pn
     attribution: 'Map data © <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
 }).addTo(map);
 
-// Barra de búsqueda con Nominatim
-const searchInput = document.createElement('input');
-searchInput.type = 'text';
-searchInput.placeholder = 'Buscar dirección...';
-searchInput.style.position = 'absolute';
-searchInput.style.top = '16px';
-searchInput.style.left = '400px';
-searchInput.style.zIndex = '1000';
-document.body.appendChild(searchInput);
-
-let currentMarker = null;
-
-searchInput.addEventListener('change', () => {
-    const query = searchInput.value;
-    if (!query) return;
-
-    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.length > 0) {
-                const { lat, lon, display_name } = data[0];
-
-                if (currentMarker) {
-                    map.removeLayer(currentMarker);
-                }
-
-                currentMarker = L.marker([lat, lon])
-                    .addTo(map)
-                    .bindPopup(`Dirección: ${display_name}<br>Latitud: ${lat}<br>Longitud: ${lon}`)
-                    .openPopup();
-                map.setView([lat, lon], 15);
-            } else {
-                alert('Dirección no encontrada.');
-            }
-        });
-});
-
 // Referencias de capas dinámicas
 const layers = {}; // Objeto para almacenar las capas
 const overlayLayers = {}; // Almacenará las coberturas para el control de capas
@@ -132,15 +95,13 @@ const layerControl = L.control.layers({
     'OpenStreetMap': baseLayer // Capa base
 }, overlayLayers).addTo(map);
 
-// Actualizar capas según temática seleccionada
-const themeSelector = document.getElementById('themeSelector');
-
 // Cargar opciones del selector dinámicamente
+const themeSelector = document.getElementById('themeSelector');
 const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRroIetgF63mgmWONDiTN8kH3Lb9896dNiTf7E_NieZF9QxZzqn5TUr0rFcjPgROzbyP1QF9mX-PQMB/pub?gid=0&single=true&output=csv';
 fetch(sheetUrl)
     .then(response => response.text())
     .then(csvText => {
-        const rows = csvText.split('\n').slice(1);
+        const rows = csvText.split('\n').slice(1); // Eliminar encabezado
         rows.forEach(row => {
             const cells = row.split(',');
             const theme = cells[1]?.trim(); // Columna B: Tema
@@ -155,8 +116,8 @@ fetch(sheetUrl)
                 // Crear un grupo de capas para la temática
                 layers[theme] = L.layerGroup();
 
-                // Para cada cobertura (columnas C, D, E, etc.), obtener los nombres y URLs
-                for (let i = 2; i < cells.length; i += 2) { // Ajustado el índice para que sea de dos en dos
+                // Cargar coberturas asociadas (columnas C, D, E...)
+                for (let i = 2; i < cells.length; i += 2) { // Ajustado para leer columnas de dos en dos
                     const coverageName = cells[i]?.trim(); // Nombre de la cobertura (columna C, D, E...)
                     const sheetUrl = cells[i + 1]?.trim(); // URL del archivo (columna D, E, F...)
                     if (coverageName && sheetUrl) {
@@ -171,11 +132,16 @@ fetch(sheetUrl)
         });
     });
 
+// Actualizar capas según temática seleccionada
 themeSelector.addEventListener('change', (e) => {
     const selectedThemeId = e.target.value;
-
-    // Quitar todas las capas
-    Object.values(layers).forEach(layerGroup => map.removeLayer(layerGroup));
+    
+    // Limpiar todas las capas anteriores
+    map.eachLayer((layer) => {
+        if (layer !== baseLayer) {
+            map.removeLayer(layer);
+        }
+    });
 
     // Añadir la capa seleccionada
     const selectedTheme = Object.keys(layers).find(theme => theme.startsWith(selectedThemeId));
@@ -183,7 +149,7 @@ themeSelector.addEventListener('change', (e) => {
         map.addLayer(layers[selectedTheme]);
     }
 
-    // Actualizar el control de capas
+    // Actualizar el control de capas (overlay)
     layerControl.removeLayer(overlayLayers); // Eliminar las coberturas anteriores
     Object.keys(overlayLayers).forEach((coverage) => {
         if (layers[selectedTheme]) {
