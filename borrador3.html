@@ -177,9 +177,14 @@ async function downloadKMZ() {
         return;
     }
 
-    // Escapar caracteres especiales para XML
-    const escapeXML = (str) =>
-        str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+    const escapeXML = (str) => {
+    if (str === null || str === undefined) return ""; // Si es nulo o indefinido, devolver cadena vacía
+    return String(str) // Convertir a cadena
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+};
+
 
     // Construir el KML a partir de las capas activas
     const kmlContent = `<?xml version="1.0" encoding="UTF-8"?>
