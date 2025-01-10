@@ -54,6 +54,7 @@ let tematicas = {};
 let layerControl = L.control.layers().addTo(map);
 let coberturaLayers = {};
 let activeLayer = null;  // Para almacenar la capa activa
+let activeCoberturaName = ""; // Para almacenar el nombre de la cobertura activa
 
 // Obtener datos y organizar las temáticas
 async function obtenerTematicas() {
@@ -157,10 +158,11 @@ async function cargarCoberturas() {
                 coberturaLayers[cobertura.nombre] = coverageLayer;
                 layerControl.addOverlay(coverageLayer, cobertura.nombre);
 
-                // Activar la capa por defecto
+                // Establecer la capa activa y el nombre de la cobertura
                 if (cobertura.porDefecto) {
                     coverageLayer.addTo(map);
                     activeLayer = layerData; // Establecer la capa activa
+                    activeCoberturaName = cobertura.nombre; // Establecer el nombre de la cobertura activa
                 }
             }
         });
@@ -195,7 +197,7 @@ async function downloadKMZ() {
     // Crear el enlace para descargar el archivo KMZ
     const link = document.createElement("a");
     link.href = URL.createObjectURL(content);
-    link.download = "cobertura_activa.kmz";
+    link.download = `${activeCoberturaName}_cobertura.kmz`; // Usar el nombre de la cobertura activa
     link.click();
 }
 
@@ -214,7 +216,7 @@ function downloadGeoJSON() {
     const geojsonBlob = new Blob([JSON.stringify(geojsonData)], { type: "application/geo+json" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(geojsonBlob);
-    link.download = "cobertura_activa.geojson";
+    link.download = `${activeCoberturaName}_cobertura.geojson`; // Usar el nombre de la cobertura activa
     link.click();
 }
 
