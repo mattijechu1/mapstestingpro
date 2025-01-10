@@ -106,6 +106,7 @@ searchInput.addEventListener('change', () => {
 
 // Referencias de capas dinámicas
 const layers = {};
+const overlayLayers = {}; // Almacenará las coberturas para el control de capas
 
 // Función para cargar datos desde Google Sheets
 function loadData(sheetUrl, layerGroup) {
@@ -124,7 +125,6 @@ function loadData(sheetUrl, layerGroup) {
 }
 
 // Crear control de capas
-const overlayLayers = {}; // Almacenará las capas adicionales para el control
 const layerControl = L.control.layers({
     'OpenStreetMap': baseLayer // Capa base
 }, overlayLayers).addTo(map);
@@ -141,17 +141,19 @@ fetch(sheetUrl)
         const rows = csvText.split('\n').slice(1);
         rows.forEach(row => {
             const cells = row.split(',');
-            const theme = cells[1]?.trim();
+            const theme = cells[1]?.trim(); // Columna B: Tema
+            const id = cells[0]?.trim(); // Columna A: ID de tema
+
             if (theme) {
                 const option = document.createElement('option');
-                option.value = theme;
+                option.value = id;
                 option.textContent = theme;
                 themeSelector.appendChild(option);
 
-                // Crear grupo de capas para la temática
+                // Crear un grupo de capas para la temática
                 layers[theme] = L.layerGroup();
 
-                // Cargar capas específicas si hay URLs en las columnas restantes
+                // Para cada cobertura (columnas C, D, E, etc.), obtener las URLs
                 for (let i = 2; i < cells.length; i++) {
                     const layerUrl = cells[i]?.trim();
                     if (layerUrl) {
@@ -159,20 +161,21 @@ fetch(sheetUrl)
                     }
                 }
 
-                // Añadir la capa al control de capas
+                // Añadir las capas al control de capas
                 overlayLayers[theme] = layers[theme];
             }
         });
     });
 
 themeSelector.addEventListener('change', (e) => {
-    const selectedTheme = e.target.value;
+    const selectedThemeId = e.target.value;
 
     // Quitar todas las capas
     Object.values(layers).forEach(layerGroup => map.removeLayer(layerGroup));
 
     // Añadir la capa seleccionada
-    if (layers[selectedTheme]) {
+    const selectedTheme = Object.keys(layers).find(theme => theme.startsWith(selectedThemeId));
+    if (selectedTheme && layers[selectedTheme]) {
         map.addLayer(layers[selectedTheme]);
     }
 
