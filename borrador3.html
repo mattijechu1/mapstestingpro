@@ -40,10 +40,15 @@ async function cargarDatosCSV() {
     return Papa.parse(text, { header: true, dynamicTyping: true }).data;
 }
 
-// Datos de las temáticas y coberturas
+// Variables globales
+let tematicas = {};
+let layerControl = L.control.layers().addTo(map);
+let coberturaLayers = {};
+
+// Obtener datos y organizar las temáticas
 async function obtenerTematicas() {
     const rows = await cargarDatosCSV();
-    const tematicas = {};
+    tematicas = {};
 
     rows.forEach(row => {
         const { ID, Temática, Cobertura, 'Activo por defecto': activoPorDefecto, URL } = row;
@@ -58,13 +63,11 @@ async function obtenerTematicas() {
             porDefecto: activoPorDefecto === 'Sí'
         });
     });
-
-    return tematicas;
 }
 
 // Llenar el selector de temáticas
 async function cargarSelector() {
-    const tematicas = await obtenerTematicas();
+    await obtenerTematicas();
     const tematicaSelect = document.getElementById('tematica');
 
     Object.keys(tematicas).forEach(tematica => {
@@ -84,22 +87,17 @@ async function cargarSelector() {
 async function cargarCoberturas() {
     const tematicaSelect = document.getElementById('tematica');
     const tematica = tematicaSelect.value;
-    const tematicas = await obtenerTematicas();
+
+    // Limpiar capas previas
+    Object.values(coberturaLayers).forEach(layer => map.removeLayer(layer));
+    coberturaLayers = {};
+
+    layerControl.remove();
+    layerControl = L.control.layers().addTo(map);
+
     const selectedTematica = tematicas[tematica];
 
-    // Limpiar los controladores de capas previos
-    if (window.layerControl) {
-        window.layerControl.remove();
-    }
-
-    // Crear un nuevo control de capas
-    window.layerControl = L.control.layers().addTo(map);
-
-    // Variables para almacenar las coberturas
-    const layers = {};
-
     selectedTematica.coberturas.forEach(cobertura => {
-        // Cargar CSV con coordenadas X, Y
         Papa.parse(cobertura.url, {
             download: true,
             header: true,
@@ -111,27 +109,23 @@ async function cargarCoberturas() {
                     if (point.X && point.Y) {
                         const latLng = [point.Y, point.X];
                         L.circleMarker(latLng, {
-                            radius: 5, // Tamaño del círculo
-                            color: "blue", // Color del borde
-                            fillColor: "blue", // Color de relleno
-                            fillOpacity: 0.5 // Opacidad del relleno
+                            radius: 5,
+                            color: "blue",
+                            fillColor: "blue",
+                            fillOpacity: 0.5
                         }).addTo(coverageLayer);
                     }
                 });
 
-                // Añadir la cobertura al control de capas, marcando como visible si es por defecto
-                layers[cobertura.nombre] = coverageLayer;
+                coberturaLayers[cobertura.nombre] = coverageLayer;
+                layerControl.addOverlay(coverageLayer, cobertura.nombre);
 
+                // Activar la capa por defecto
                 if (cobertura.porDefecto) {
                     coverageLayer.addTo(map);
                 }
             }
         });
-    });
-
-    // Agregar las coberturas al layer control
-    Object.keys(layers).forEach(cobertura => {
-        window.layerControl.addBaseLayer(layers[cobertura], cobertura);
     });
 }
 
