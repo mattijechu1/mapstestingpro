@@ -8,6 +8,7 @@
     <style>
         #map { height: 600px; }
         #selector { margin: 10px 0; }
+        #download { margin: 10px 0; }
         img { max-width: 100%; height: auto; margin-top: 10px; border: 1px solid #ccc; }
     </style>
 </head>
@@ -22,6 +23,10 @@
 
 <div id="map"></div>
 
+<div id="download">
+    <button onclick="descargarGeoJSON()">Descargar GeoJSON de la cobertura activa</button>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 <script src="https://unpkg.com/papaparse/papaparse.min.js"></script>
 <script>
@@ -34,19 +39,20 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 // URL de Google Sheets en formato CSV
 const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQTRULBpYlPIfLrNuL-SZ6Zf1kIdBJYF8HKdBLIpMAw69vUNQFRNmEMt_tE3Eq3Ag/pub?gid=389153198&single=true&output=csv";
 
-// Cargar los datos desde el archivo CSV de Google Sheets
+// Variables globales
+let tematicas = {};
+let layerControl = L.control.layers().addTo(map);
+let coberturaLayers = {};
+let capaActiva = null;
+
+// Obtener datos desde Google Sheets
 async function cargarDatosCSV() {
     const response = await fetch(csvUrl);
     const text = await response.text();
     return Papa.parse(text, { header: true, dynamicTyping: true }).data;
 }
 
-// Variables globales
-let tematicas = {};
-let layerControl = L.control.layers().addTo(map);
-let coberturaLayers = {};
-
-// Obtener datos y organizar las temáticas
+// Obtener temáticas y coberturas
 async function obtenerTematicas() {
     const rows = await cargarDatosCSV();
     tematicas = {};
@@ -66,7 +72,7 @@ async function obtenerTematicas() {
     });
 }
 
-// Llenar el selector de temáticas
+// Llenar selector de temáticas
 async function cargarSelector() {
     await obtenerTematicas();
     const tematicaSelect = document.getElementById('tematica');
@@ -78,20 +84,19 @@ async function cargarSelector() {
         tematicaSelect.appendChild(option);
     });
 
-    // Cargar las coberturas de la primera temática por defecto
     if (tematicaSelect.value) {
         cargarCoberturas();
     }
 }
 
-// Función para cargar coberturas
+// Cargar coberturas según la temática seleccionada
 async function cargarCoberturas() {
     const tematicaSelect = document.getElementById('tematica');
     const tematica = tematicaSelect.value;
 
-    // Limpiar capas previas
     Object.values(coberturaLayers).forEach(layer => map.removeLayer(layer));
     coberturaLayers = {};
+    capaActiva = null;
 
     layerControl.remove();
     layerControl = L.control.layers().addTo(map);
@@ -109,8 +114,6 @@ async function cargarCoberturas() {
                 results.data.forEach(point => {
                     if (point.X && point.Y) {
                         const latLng = [point.Y, point.X];
-
-                        // Crear contenido del popup dinámicamente
                         let popupContent = "<b>Detalles:</b><br>";
                         for (const key in point) {
                             if (point[key] && key !== "X" && key !== "Y") {
@@ -128,7 +131,7 @@ async function cargarCoberturas() {
                             fillColor: "blue",
                             fillOpacity: 0.5
                         })
-                        .bindPopup(popupContent) // Asociar popup al círculo
+                        .bindPopup(popupContent)
                         .addTo(coverageLayer);
                     }
                 });
@@ -136,16 +139,37 @@ async function cargarCoberturas() {
                 coberturaLayers[cobertura.nombre] = coverageLayer;
                 layerControl.addOverlay(coverageLayer, cobertura.nombre);
 
-                // Activar la capa por defecto
                 if (cobertura.porDefecto) {
                     coverageLayer.addTo(map);
+                    capaActiva = coverageLayer;
                 }
+
+                coverageLayer.on('add', () => capaActiva = coverageLayer);
             }
         });
     });
 }
 
-// Iniciar con el cargado de temáticas
+// Descargar GeoJSON de la capa activa
+function descargarGeoJSON() {
+    if (!capaActiva) {
+        alert("No hay una capa activa para descargar.");
+        return;
+    }
+
+    const geojson = capaActiva.toGeoJSON();
+    const blob = new Blob([JSON.stringify(geojson)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "cobertura_activa.geojson";
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+
+// Inicializar el mapa
 cargarSelector();
 </script>
 
