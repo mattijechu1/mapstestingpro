@@ -9,13 +9,13 @@
         #map {
             height: 97vh;
             width: 80%;
-	    left: 380px;
+            left: 380px;
         }
         #menu {
             position: absolute;
-	    height: 95vh;
+            height: 95vh;
             top: 10px;
-	    width: 18%;
+            width: 18%;
             left: 10px;
             background: white;
             padding: 10px;
@@ -32,7 +32,6 @@
             top: 80px !important; /* Ajustar posición del controlador de zoom */
         }
         .leaflet-control-geocoder {
-          
             top: 10px;
             left: 300px;
             z-index: 1000;
@@ -64,7 +63,7 @@
 const map = L.map('map').setView([-33.45, -70.65], 13); // Coordenadas iniciales (Santiago, Chile)
 
 // Añadir capa base
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+const baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: 'Map data © <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
 }).addTo(map);
 
@@ -124,6 +123,12 @@ function loadData(sheetUrl, layerGroup) {
         });
 }
 
+// Crear control de capas
+const overlayLayers = {}; // Almacenará las capas adicionales para el control
+const layerControl = L.control.layers({
+    'OpenStreetMap': baseLayer // Capa base
+}, overlayLayers).addTo(map);
+
 // Actualizar capas según temática seleccionada
 const themeSelector = document.getElementById('themeSelector');
 const layerControls = document.getElementById('layerControls');
@@ -153,6 +158,9 @@ fetch(sheetUrl)
                         loadData(layerUrl, layers[theme]);
                     }
                 }
+
+                // Añadir la capa al control de capas
+                overlayLayers[theme] = layers[theme];
             }
         });
     });
