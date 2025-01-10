@@ -110,7 +110,12 @@ async function cargarCoberturas() {
                 results.data.forEach(point => {
                     if (point.X && point.Y) {
                         const latLng = [point.Y, point.X];
-                        L.marker(latLng).addTo(coverageLayer);
+                        L.circleMarker(latLng, {
+                            radius: 5, // Tamaño del círculo
+                            color: "blue", // Color del borde
+                            fillColor: "blue", // Color de relleno
+                            fillOpacity: 0.5 // Opacidad del relleno
+                        }).addTo(coverageLayer);
                     }
                 });
 
