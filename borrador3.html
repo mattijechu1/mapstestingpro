@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visor de Mapas Dinámico</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        #map { height: 600px; }
+        #selector { margin: 10px 0; }
+    </style>
+</head>
+<body>
+
+<div id="selector">
+    <label for="tematica">Selecciona una Temática:</label>
+    <select id="tematica" onchange="cargarCoberturas()">
+        <!-- Las temáticas se cargarán dinámicamente -->
+    </select>
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script src="https://unpkg.com/papaparse/papaparse.min.js"></script>
+<script>
+// Mapa de Leaflet centrado en Santiago de Chile
+const map = L.map('map').setView([-33.4489, -70.6693], 12); // Centrado en Santiago con zoom nivel 12
+
+// Cargar el mapa base
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+// URL de Google Sheets en formato CSV
+const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQTRULBpYlPIfLrNuL-SZ6Zf1kIdBJYF8HKdBLIpMAw69vUNQFRNmEMt_tE3Eq3Ag/pub?gid=389153198&single=true&output=csv";
+
+// Cargar los datos desde el archivo CSV de Google Sheets
+async function cargarDatosCSV() {
+    const response = await fetch(csvUrl);
+    const text = await response.text();
+    return Papa.parse(text, { header: true, dynamicTyping: true }).data;
+}
+
+// Datos de las temáticas y coberturas
+async function obtenerTematicas() {
+    const rows = await cargarDatosCSV();
+    const tematicas = {};
+
+    rows.forEach(row => {
+        const { ID, Temática, Cobertura, 'Activo por defecto': activoPorDefecto, URL } = row;
+
+        if (!tematicas[Temática]) {
+            tematicas[Temática] = { id: ID, coberturas: [] };
+        }
+
+        tematicas[Temática].coberturas.push({
+            nombre: Cobertura,
+            url: URL,
+            porDefecto: activoPorDefecto === 'Sí'
+        });
+    });
+
+    return tematicas;
+}
+
+// Llenar el selector de temáticas
+async function cargarSelector() {
+    const tematicas = await obtenerTematicas();
+    const tematicaSelect = document.getElementById('tematica');
+
+    Object.keys(tematicas).forEach(tematica => {
+        const option = document.createElement('option');
+        option.value = tematica;
+        option.textContent = tematica;
+        tematicaSelect.appendChild(option);
+    });
+
+    // Cargar las coberturas de la primera temática por defecto
+    if (tematicaSelect.value) {
+        cargarCoberturas();
+    }
+}
+
+// Función para cargar coberturas
+async function cargarCoberturas() {
+    const tematicaSelect = document.getElementById('tematica');
+    const tematica = tematicaSelect.value;
+    const tematicas = await obtenerTematicas();
+    const selectedTematica = tematicas[tematica];
+
+    // Limpiar los controladores de capas previos
+    if (window.layerControl) {
+        window.layerControl.remove();
+    }
+
+    // Crear un nuevo control de capas
+    window.layerControl = L.control.layers().addTo(map);
+
+    // Variables para almacenar las coberturas
+    const layers = {};
+
+    selectedTematica.coberturas.forEach(cobertura => {
+        // Cargar CSV con coordenadas X, Y
+        Papa.parse(cobertura.url, {
+            download: true,
+            header: true,
+            dynamicTyping: true,
+            complete: function(results) {
+                const coverageLayer = L.layerGroup();
+
+                results.data.forEach(point => {
+                    if (point.X && point.Y) {
+                        const latLng = [point.Y, point.X];
+                        L.marker(latLng).addTo(coverageLayer);
+                    }
+                });
+
+                // Añadir la cobertura al control de capas, marcando como visible si es por defecto
+                layers[cobertura.nombre] = coverageLayer;
+
+                if (cobertura.porDefecto) {
+                    coverageLayer.addTo(map);
+                }
+            }
+        });
+    });
+
+    // Agregar las coberturas al layer control
+    Object.keys(layers).forEach(cobertura => {
+        window.layerControl.addBaseLayer(layers[cobertura], cobertura);
+    });
+}
+
+// Iniciar con el cargado de temáticas
+cargarSelector();
+</script>
+
+</body>
+</html>
