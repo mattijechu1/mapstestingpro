@@ -110,15 +110,21 @@ function loadData(sheetUrl, layerGroup) {
     fetch(sheetUrl)
         .then(response => response.text())
         .then(csvText => {
-            const rows = csvText.split('\n').slice(1);
+            const rows = csvText.split('\n').slice(1); // Eliminar la primera fila de encabezados
             rows.forEach(row => {
-                const [lat, lon, name] = row.split(',');
-                if (lat && lon) {
-                    const marker = L.marker([parseFloat(lat), parseFloat(lon)]).bindPopup(name);
+                const columns = row.split(',');
+                const x = parseFloat(columns[columns.indexOf('X')]); // Columna X (longitud)
+                const y = parseFloat(columns[columns.indexOf('Y')]); // Columna Y (latitud)
+                const name = columns[0]; // Nombre del marcador (ajustar según la estructura del CSV)
+
+                if (x && y) {
+                    const marker = L.marker([y, x]) // Cambiar el orden para latitud y longitud
+                        .bindPopup(`Nombre: ${name}<br>Latitud: ${y}<br>Longitud: ${x}`);
                     marker.addTo(layerGroup);
                 }
             });
-        });
+        })
+        .catch(error => console.error('Error al cargar los datos del Google Sheet:', error));
 }
 
 // Crear control de capas
@@ -152,11 +158,11 @@ fetch(sheetUrl)
                 // Para cada cobertura (columnas C, D, E, etc.), obtener los nombres y URLs
                 for (let i = 2; i < cells.length; i++) {
                     const coverageName = cells[i]?.trim(); // Nombre de la cobertura (columna C, D, E...)
-                    const layerUrl = cells[i + 1]?.trim(); // URL del archivo (columna D, E, F...)
-                    if (coverageName && layerUrl) {
+                    const sheetUrl = cells[i + 1]?.trim(); // URL del archivo (columna D, E, F...)
+                    if (coverageName && sheetUrl) {
                         // Cargar los datos de cada capa
-                        loadData(layerUrl, layers[theme]);
-                        
+                        loadData(sheetUrl, layers[theme]);
+
                         // Añadir la cobertura al control de capas con el nombre correspondiente
                         overlayLayers[coverageName] = layers[theme];
                     }
