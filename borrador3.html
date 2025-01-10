@@ -124,8 +124,10 @@ async function cargarCoberturas() {
 
                         // Crear contenido del popup dinámicamente
                         let popupContent = "<b>Detalles:</b><br>";
+                        let pointAttributes = {}; // Para almacenar los atributos del punto
                         for (const key in point) {
                             if (point[key] && key !== "X" && key !== "Y") {
+                                pointAttributes[key] = point[key]; // Almacenar los atributos
                                 if (key === "FOTO" && point[key].startsWith("http")) {
                                     popupContent += `<img src="${point[key]}" alt="Foto asociada"><br>`;
                                 } else {
@@ -150,7 +152,7 @@ async function cargarCoberturas() {
                                 type: "Point",
                                 coordinates: [point.X, point.Y]
                             },
-                            properties: point
+                            properties: pointAttributes // Incluir los atributos en las propiedades del GeoJSON
                         });
                     }
                 });
@@ -183,6 +185,9 @@ async function downloadKMZ() {
     ${activeLayer.map(feature => `
         <Placemark>
             <name>${feature.properties.ID || "Sin nombre"}</name>
+            <description>
+                ${Object.entries(feature.properties).map(([key, value]) => `<b>${key}:</b> ${value}`).join('<br>')}
+            </description>
             <Point>
                 <coordinates>${feature.geometry.coordinates[0]},${feature.geometry.coordinates[1]}</coordinates>
             </Point>
