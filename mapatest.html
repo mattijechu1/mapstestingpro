@@ -95,68 +95,33 @@ const layerControl = L.control.layers({
     'OpenStreetMap': baseLayer // Capa base
 }, overlayLayers).addTo(map);
 
-// Cargar opciones del selector dinámicamente
-const themeSelector = document.getElementById('themeSelector');
-const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRroIetgF63mgmWONDiTN8kH3Lb9896dNiTf7E_NieZF9QxZzqn5TUr0rFcjPgROzbyP1QF9mX-PQMB/pub?gid=0&single=true&output=csv';
-fetch(sheetUrl)
-    .then(response => response.text())
-    .then(csvText => {
-        const rows = csvText.split('\n').slice(1); // Eliminar encabezado
-        rows.forEach(row => {
-            const cells = row.split(',');
-            const theme = cells[1]?.trim(); // Columna B: Tema
-            const id = cells[0]?.trim(); // Columna A: ID de tema
-
-            if (theme) {
-                const option = document.createElement('option');
-                option.value = id;
-                option.textContent = theme;
-                themeSelector.appendChild(option);
-
-                // Crear un grupo de capas para la temática
-                layers[theme] = L.layerGroup();
-
-                // Cargar coberturas asociadas (columnas C, D, E...)
-                for (let i = 2; i < cells.length; i += 2) { // Ajustado para leer columnas de dos en dos
-                    const coverageName = cells[i]?.trim(); // Nombre de la cobertura (columna C, D, E...)
-                    const sheetUrl = cells[i + 1]?.trim(); // URL del archivo (columna D, E, F...)
-                    if (coverageName && sheetUrl) {
-                        // Cargar los datos de cada capa
-                        loadData(sheetUrl, layers[theme]);
-
-                        // Añadir la cobertura al control de capas
-                        overlayLayers[coverageName] = layers[theme];
-                    }
-                }
-            }
-        });
-    });
-
 // Actualizar capas según temática seleccionada
 themeSelector.addEventListener('change', (e) => {
     const selectedThemeId = e.target.value;
     
-    // Limpiar todas las capas anteriores
+    // Limpiar las capas anteriores (excepto la capa base)
     map.eachLayer((layer) => {
         if (layer !== baseLayer) {
             map.removeLayer(layer);
         }
     });
 
-    // Añadir la capa seleccionada
+    // Añadir la capa de la temática seleccionada
     const selectedTheme = Object.keys(layers).find(theme => theme.startsWith(selectedThemeId));
     if (selectedTheme && layers[selectedTheme]) {
         map.addLayer(layers[selectedTheme]);
     }
 
-    // Actualizar el control de capas (overlay)
-    layerControl.removeLayer(overlayLayers); // Eliminar las coberturas anteriores
+    // Limpiar las coberturas anteriores en el control de capas
+    layerControl._layers = {}; // Reiniciar las capas del control
+    // Añadir las coberturas dinámicamente para la temática seleccionada
     Object.keys(overlayLayers).forEach((coverage) => {
         if (layers[selectedTheme]) {
             layerControl.addOverlay(layers[selectedTheme], coverage); // Añadir las nuevas coberturas
         }
     });
 });
+
 
 // Simular descargas (URLs deben ser reemplazadas con las reales)
 document.getElementById('downloadKmz').addEventListener('click', () => {
