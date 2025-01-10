@@ -171,52 +171,63 @@ async function cargarCoberturas() {
     });
 }
 
-// Función para descargar en formato KMZ
 async function downloadKMZ() {
     if (!activeLayer) {
         alert("No hay cobertura activa para descargar.");
         return;
     }
 
+    // Escapar caracteres especiales para XML
     const escapeXML = (str) =>
-        str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
 
-    const kml = `<?xml version="1.0" encoding="UTF-8"?>
+    // Construir el KML a partir de las capas activas
+    const kmlContent = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
 <Document>
-${activeLayer
-    .map((feature) => {
-        const properties = feature.properties || {};
-        const coordinates = feature.geometry?.coordinates || [];
-        if (coordinates.length < 2) return ""; // Ignorar geometrías inválidas
+    <name>${escapeXML(activeCoberturaName)}</name>
+    ${activeLayer
+        .map((feature) => {
+            const properties = feature.properties || {};
+            const coordinates = feature.geometry?.coordinates || [];
+            if (coordinates.length < 2) return ""; // Ignorar geometrías inválidas
 
-        const propsDescription = Object.entries(properties)
-            .map(
-                ([key, value]) => `<b>${escapeXML(key)}:</b> ${escapeXML(value)}`
-            )
-            .join("<br>");
+            const propsDescription = Object.entries(properties)
+                .map(
+                    ([key, value]) =>
+                        `<b>${escapeXML(key)}:</b> ${escapeXML(String(value))}`
+                )
+                .join("<br>");
 
-        return `
-<Placemark>
-    <name>${escapeXML(properties.ID || "Sin nombre")}</name>
-    <description>${propsDescription}</description>
-    <Point>
-        <coordinates>${coordinates[0]},${coordinates[1]},0</coordinates>
-    </Point>
-</Placemark>`;
-    })
-    .join("")}
+            return `
+    <Placemark>
+        <name>${escapeXML(properties.ID || "Sin nombre")}</name>
+        <description><![CDATA[${propsDescription}]]></description>
+        <Point>
+            <coordinates>${coordinates[0]},${coordinates[1]},0</coordinates>
+        </Point>
+    </Placemark>`;
+        })
+        .join("")}
 </Document>
 </kml>`;
 
-    const kmz = new JSZip();
-    kmz.file("doc.kml", kml);
-    const content = await kmz.generateAsync({ type: "blob" });
+    // Crear el archivo KMZ usando JSZip
+    try {
+        const zip = new JSZip();
+        zip.file("doc.kml", kmlContent); // Guardar el KML como doc.kml dentro del ZIP
 
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(content);
-    link.download = `${activeCoberturaName}_.kmz`;
-    link.click();
+        const kmzBlob = await zip.generateAsync({ type: "blob" });
+
+        // Crear un enlace para descargar el KMZ
+        const downloadLink = document.createElement("a");
+        downloadLink.href = URL.createObjectURL(kmzBlob);
+        downloadLink.download = `${activeCoberturaName || "archivo"}.kmz`;
+        downloadLink.click();
+    } catch (error) {
+        console.error("Error al generar el archivo KMZ:", error);
+        alert("Ocurrió un error al intentar generar el archivo KMZ.");
+    }
 }
 
 // Función para descargar en formato GeoJSON
