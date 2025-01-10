@@ -8,8 +8,8 @@
     <style>
         #map { height: 600px; }
         #selector { margin: 10px 0; }
-        #download-buttons { margin: 10px 0; }
         img { max-width: 100%; height: auto; margin-top: 10px; border: 1px solid #ccc; }
+        #buttons { margin: 10px 0; }
     </style>
 </head>
 <body>
@@ -23,18 +23,17 @@
 
 <div id="map"></div>
 
-<div id="download-buttons">
-    <button id="download-kmz" onclick="downloadKMZ()">Descargar KMZ</button>
-    <button id="download-geojson" onclick="downloadGeoJSON()">Descargar GeoJSON</button>
+<div id="buttons">
+    <button onclick="downloadKMZ()">Descargar KMZ</button>
+    <button onclick="downloadGeoJSON()">Descargar GeoJSON</button>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 <script src="https://unpkg.com/papaparse/papaparse.min.js"></script>
-<script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script> <!-- Para crear KMZ -->
-
+<script src="https://unpkg.com/jszip/dist/jszip.min.js"></script>
 <script>
 // Mapa de Leaflet centrado en Santiago de Chile
-const map = L.map('map').setView([-33.4489, -70.6693], 12);
+const map = L.map('map').setView([-33.4489, -70.6693], 12); // Centrado en Santiago con zoom nivel 12
 
 // Cargar el mapa base
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
@@ -53,8 +52,8 @@ async function cargarDatosCSV() {
 let tematicas = {};
 let layerControl = L.control.layers().addTo(map);
 let coberturaLayers = {};
-let activeLayer = null;  // Para almacenar la capa activa
-let activeCoberturaName = ""; // Para almacenar el nombre de la cobertura activa
+let activeLayer = null;
+let activeCoberturaName = '';
 
 // Obtener datos y organizar las temáticas
 async function obtenerTematicas() {
@@ -107,7 +106,6 @@ async function cargarCoberturas() {
     layerControl = L.control.layers().addTo(map);
 
     const selectedTematica = tematicas[tematica];
-    activeLayer = null;
 
     selectedTematica.coberturas.forEach(cobertura => {
         Papa.parse(cobertura.url, {
@@ -116,7 +114,6 @@ async function cargarCoberturas() {
             dynamicTyping: true,
             complete: function(results) {
                 const coverageLayer = L.layerGroup();
-                let layerData = [];
 
                 results.data.forEach(point => {
                     if (point.X && point.Y) {
@@ -124,10 +121,8 @@ async function cargarCoberturas() {
 
                         // Crear contenido del popup dinámicamente
                         let popupContent = "<b>Detalles:</b><br>";
-                        let pointAttributes = {}; // Para almacenar los atributos del punto
                         for (const key in point) {
                             if (point[key] && key !== "X" && key !== "Y") {
-                                pointAttributes[key] = point[key]; // Almacenar los atributos
                                 if (key === "FOTO" && point[key].startsWith("http")) {
                                     popupContent += `<img src="${point[key]}" alt="Foto asociada"><br>`;
                                 } else {
@@ -136,7 +131,7 @@ async function cargarCoberturas() {
                             }
                         }
 
-                        const circleMarker = L.circleMarker(latLng, {
+                        L.circleMarker(latLng, {
                             radius: 5,
                             color: "blue",
                             fillColor: "blue",
@@ -144,31 +139,38 @@ async function cargarCoberturas() {
                         })
                         .bindPopup(popupContent) // Asociar popup al círculo
                         .addTo(coverageLayer);
-
-                        // Guardar datos para exportar
-                        layerData.push({
-                            type: "Feature",
-                            geometry: {
-                                type: "Point",
-                                coordinates: [point.X, point.Y]
-                            },
-                            properties: pointAttributes // Incluir los atributos en las propiedades del GeoJSON
-                        });
                     }
                 });
 
                 coberturaLayers[cobertura.nombre] = coverageLayer;
                 layerControl.addOverlay(coverageLayer, cobertura.nombre);
 
-                // Establecer la capa activa y el nombre de la cobertura
+                // Activar la capa por defecto
                 if (cobertura.porDefecto) {
                     coverageLayer.addTo(map);
-                    activeLayer = layerData; // Establecer la capa activa
-                    activeCoberturaName = cobertura.nombre; // Establecer el nombre de la cobertura activa
+                    activeLayer = coverageLayer;
+                    activeCoberturaName = cobertura.nombre;
                 }
             }
         });
     });
+}
+
+// Función para descargar en formato GeoJSON
+function downloadGeoJSON() {
+    if (!activeLayer) {
+        alert("No hay cobertura activa para descargar.");
+        return;
+    }
+
+    const geojson = activeLayer.toGeoJSON();
+
+    // Descargar el archivo GeoJSON
+    const blob = new Blob([JSON.stringify(geojson)], { type: "application/json" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${activeCoberturaName}_cobertura.geojson`; // Usar el nombre de la cobertura activa
+    link.click();
 }
 
 // Función para descargar en formato KMZ
@@ -179,15 +181,18 @@ async function downloadKMZ() {
     }
 
     const kmz = new JSZip();
+    
+    // Crear el contenido KML
     const kml = `<?xml version="1.0" encoding="UTF-8"?>
     <kml xmlns="http://www.opengis.net/kml/2.2">
     <Document>
-    ${activeLayer.map(feature => `
+    ${activeLayer.toGeoJSON().features.map(feature => `
         <Placemark>
             <name>${feature.properties.ID || "Sin nombre"}</name>
-            <description>
-                ${Object.entries(feature.properties).map(([key, value]) => `<b>${key}:</b> ${value}`).join('<br>')}
-            </description>
+            <description><![CDATA[
+                ${Object.entries(feature.properties).map(([key, value]) => 
+                    `<b>${key}:</b> ${value}`).join('<br>')}
+            ]]></description>
             <Point>
                 <coordinates>${feature.geometry.coordinates[0]},${feature.geometry.coordinates[1]}</coordinates>
             </Point>
@@ -197,31 +202,14 @@ async function downloadKMZ() {
     </kml>`;
 
     kmz.file("doc.kml", kml);
+    
+    // Generar el archivo KMZ como un blob
     const content = await kmz.generateAsync({ type: "blob" });
 
     // Crear el enlace para descargar el archivo KMZ
     const link = document.createElement("a");
     link.href = URL.createObjectURL(content);
     link.download = `${activeCoberturaName}_cobertura.kmz`; // Usar el nombre de la cobertura activa
-    link.click();
-}
-
-// Función para descargar en formato GeoJSON
-function downloadGeoJSON() {
-    if (!activeLayer) {
-        alert("No hay cobertura activa para descargar.");
-        return;
-    }
-
-    const geojsonData = {
-        type: "FeatureCollection",
-        features: activeLayer
-    };
-
-    const geojsonBlob = new Blob([JSON.stringify(geojsonData)], { type: "application/geo+json" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(geojsonBlob);
-    link.download = `${activeCoberturaName}_cobertura.geojson`; // Usar el nombre de la cobertura activa
     link.click();
 }
 
