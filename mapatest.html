@@ -44,9 +44,6 @@
     <h3>Seleccione Áreas de Interés</h3>
     <select id="themeSelector">
     </select>
-    <div id="layerControls">
-        <!-- Los controles de capas se generarán dinámicamente -->
-    </div>
     <div class="download-section">
         <h4>Descargar Información</h4>
         <button id="downloadKmz">KMZ</button>
@@ -131,7 +128,6 @@ const layerControl = L.control.layers({
 
 // Actualizar capas según temática seleccionada
 const themeSelector = document.getElementById('themeSelector');
-const layerControls = document.getElementById('layerControls');
 
 // Cargar opciones del selector dinámicamente
 const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRroIetgF63mgmWONDiTN8kH3Lb9896dNiTf7E_NieZF9QxZzqn5TUr0rFcjPgROzbyP1QF9mX-PQMB/pub?gid=0&single=true&output=csv';
@@ -153,7 +149,7 @@ fetch(sheetUrl)
                 // Crear un grupo de capas para la temática
                 layers[theme] = L.layerGroup();
 
-                // Para cada cobertura (columnas C, D, E, etc.), obtener las URLs y nombres
+                // Para cada cobertura (columnas C, D, E, etc.), obtener los nombres y URLs
                 for (let i = 2; i < cells.length; i++) {
                     const coverageName = cells[i]?.trim(); // Nombre de la cobertura (columna C, D, E...)
                     const layerUrl = cells[i + 1]?.trim(); // URL del archivo (columna D, E, F...)
@@ -181,28 +177,13 @@ themeSelector.addEventListener('change', (e) => {
         map.addLayer(layers[selectedTheme]);
     }
 
-    // Actualizar controles de capas
-    layerControls.innerHTML = '';
-    if (layers[selectedTheme]) {
-        layers[selectedTheme].eachLayer(layer => {
-            const layerControl = document.createElement('div');
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.checked = map.hasLayer(layer);
-
-            checkbox.addEventListener('change', () => {
-                if (checkbox.checked) {
-                    map.addLayer(layer);
-                } else {
-                    map.removeLayer(layer);
-                }
-            });
-
-            layerControl.appendChild(checkbox);
-            layerControl.appendChild(document.createTextNode(layer.getPopup()?.getContent() || 'Capa sin nombre'));
-            layerControls.appendChild(layerControl);
-        });
-    }
+    // Actualizar el control de capas
+    layerControl.removeLayer(overlayLayers); // Eliminar las coberturas anteriores
+    Object.keys(overlayLayers).forEach((coverage) => {
+        if (layers[selectedTheme]) {
+            layerControl.addOverlay(layers[selectedTheme], coverage); // Añadir las nuevas coberturas
+        }
+    });
 });
 
 // Simular descargas (URLs deben ser reemplazadas con las reales)
