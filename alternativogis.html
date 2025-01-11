@@ -74,7 +74,8 @@ async function obtenerTematicas() {
 
         tematicas[Temática].coberturas.push({
             nombre: Cobertura,
-            url: URL
+            url: URL,
+            porDefecto: activoPorDefecto === 'Sí'
         });
     });
 }
