@@ -35,11 +35,13 @@
 <div id="descargar-botones" style="display: none;">
     <button id="descargar-kmz">Descargar KMZ</button>
     <button id="descargar-geojson" onclick="descargarGeoJSON()">Descargar GeoJSON</button>
-    <button id="descargar-excel">Descargar Excel</button>
+    <button id="descargar-excel" onclick="descargarExcel()">Descargar Excel</button>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 <script src="https://unpkg.com/papaparse/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script> <!-- Incluyendo la librería XLSX -->
+
 <script>
 // Mapa de Leaflet centrado en Santiago de Chile
 const map = L.map('map').setView([-33.4489, -70.6693], 12); // Centrado en Santiago con zoom nivel 12
@@ -221,6 +223,32 @@ function descargarGeoJSON() {
             a.download = `${selectedCobertura}.geojson`;
             a.click();
             URL.revokeObjectURL(url);
+        }
+    });
+}
+
+// Función para descargar el archivo Excel
+function descargarExcel() {
+    const selectedCobertura = document.getElementById('cobertura').value;
+    if (!selectedCobertura) return;
+
+    const selectedTematica = document.getElementById('tematica').value;
+    const cobertura = tematicas[selectedTematica].coberturas.find(c => c.nombre === selectedCobertura);
+    
+    if (!cobertura) return;
+
+    Papa.parse(cobertura.url, {
+        download: true,
+        header: true,
+        dynamicTyping: true,
+        complete: function(results) {
+            // Crear un libro de Excel con las propiedades de los puntos
+            const ws = XLSX.utils.json_to_sheet(results.data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, selectedCobertura);
+            
+            // Crear un archivo Excel descargable
+            XLSX.writeFile(wb, `${selectedCobertura}.xlsx`);
         }
     });
 }
