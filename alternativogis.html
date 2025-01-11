@@ -9,7 +9,7 @@
         #map { height: 600px; }
         #selector { margin: 10px 0; }
         img { max-width: 100%; height: auto; margin-top: 10px; border: 1px solid #ccc; }
-        #descargar-btn { margin-top: 10px; padding: 10px; cursor: pointer; background-color: #4CAF50; color: white; border: none; border-radius: 5px; }
+        #cobertura-selector { margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -23,8 +23,12 @@
 
 <div id="map"></div>
 
-<!-- Botón para descargar GeoJSON -->
-<button id="descargar-btn" onclick="descargarGeoJSON()" disabled>Descargar GeoJSON</button>
+<div id="cobertura-selector">
+    <label for="cobertura">Selecciona una Cobertura:</label>
+    <select id="cobertura">
+        <!-- Las coberturas se cargarán dinámicamente según la temática -->
+    </select>
+</div>
 
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 <script src="https://unpkg.com/papaparse/papaparse.min.js"></script>
@@ -49,7 +53,6 @@ async function cargarDatosCSV() {
 let tematicas = {};
 let layerControl = L.control.layers().addTo(map);
 let coberturaLayers = {};
-let capaSeleccionada = null; // Variable para almacenar la capa seleccionada actualmente
 
 // Obtener datos y organizar las temáticas
 async function obtenerTematicas() {
@@ -101,9 +104,19 @@ async function cargarCoberturas() {
     layerControl.remove();
     layerControl = L.control.layers().addTo(map);
 
+    // Limpiar el menú de coberturas
+    const coberturaSelect = document.getElementById('cobertura');
+    coberturaSelect.innerHTML = ''; // Limpiar opciones previas
+
     const selectedTematica = tematicas[tematica];
 
+    // Llenar el selector de coberturas
     selectedTematica.coberturas.forEach(cobertura => {
+        const option = document.createElement('option');
+        option.value = cobertura.nombre;
+        option.textContent = cobertura.nombre;
+        coberturaSelect.appendChild(option);
+
         Papa.parse(cobertura.url, {
             download: true,
             header: true,
@@ -144,28 +157,10 @@ async function cargarCoberturas() {
                 // Activar la capa por defecto
                 if (cobertura.porDefecto) {
                     coverageLayer.addTo(map);
-                    capaSeleccionada = coverageLayer; // Guardar la capa activa
-                    document.getElementById('descargar-btn').disabled = false; // Habilitar botón de descarga
                 }
             }
         });
     });
-}
-
-// Función para descargar el GeoJSON
-function descargarGeoJSON() {
-    if (!capaSeleccionada) return;
-
-    const geojson = capaSeleccionada.toGeoJSON(); // Convertir la capa seleccionada a GeoJSON
-
-    // Crear un archivo Blob de tipo GeoJSON
-    const blob = new Blob([JSON.stringify(geojson)], { type: 'application/json' });
-
-    // Crear un enlace de descarga y simular un clic
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `${Object.keys(coberturaLayers)[0]}.geojson`; // Nombre del archivo es el nombre de la cobertura
-    link.click();
 }
 
 // Iniciar con el cargado de temáticas
@@ -174,3 +169,4 @@ cargarSelector();
 
 </body>
 </html>
+
