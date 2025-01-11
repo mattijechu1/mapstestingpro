@@ -41,7 +41,9 @@
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 <script src="https://unpkg.com/papaparse/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/js2kmz@1.0.4/js2kmz.min.js"></script> <!-- Incluyendo la librería js2kmz -->
+
+<!-- Cargar correctamente la librería js2kmz -->
+<script src="https://cdn.jsdelivr.net/npm/js2kmz@1.0.4/js2kmz.min.js"></script>
 
 <script>
 // Mapa de Leaflet centrado en Santiago de Chile
@@ -229,7 +231,7 @@ function descargarKMZ() {
             };
 
             // Convertir a KMZ y permitir la descarga
-            const kmzBlob = js2kmz.kml2kmz(kml);
+            const kmzBlob = js2kmz(kml);
             const url = URL.createObjectURL(kmzBlob);
             const a = document.createElement("a");
             a.href = url;
@@ -319,3 +321,4 @@ cargarSelector();
 
 </body>
 </html>
+
