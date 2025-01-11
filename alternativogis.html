@@ -209,8 +209,8 @@ function descargarKMZ() {
             results.data.forEach(point => {
                 if (point.X && point.Y) {
                     kmlContent += '<Placemark>';
-                    kmlContent += `<name>${point.ID}</name>`;
-                    kmlContent += `<description>${JSON.stringify(point)}</description>`;
+                    kmlContent += `<name>${escapeXML(point.ID)}</name>`;  // Escapar caracteres especiales
+                    kmlContent += `<description>${escapeXML(JSON.stringify(point))}</description>`;  // Escapar caracteres especiales
                     kmlContent += `<Point><coordinates>${point.X},${point.Y}</coordinates></Point>`;
                     kmlContent += '</Placemark>';
                 }
@@ -234,6 +234,21 @@ function descargarKMZ() {
         }
     });
 }
+
+// Función para escapar caracteres especiales para XML
+function escapeXML(str) {
+    return str.replace(/[<>&'"]/g, function (char) {
+        switch (char) {
+            case '<': return '&lt;';
+            case '>': return '&gt;';
+            case '&': return '&amp;';
+            case "'": return '&apos;';
+            case '"': return '&quot;';
+            default: return char;
+        }
+    });
+}
+
 
 // Función para descargar el archivo GeoJSON
 function descargarGeoJSON() {
