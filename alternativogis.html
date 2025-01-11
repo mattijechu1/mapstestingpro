@@ -173,51 +173,51 @@ async function cargarCoberturas() {
     });
 }
 
+// Función para descargar en formato KMZ
 async function downloadKMZ() {
-    if (!capaActiva) {
+    if (!activeLayer) {  // Usamos activeLayer en lugar de capaActiva
         alert("No hay cobertura activa para descargar.");
         return;
     }
 
     const escapeXML = (str) => {
-    if (str === null || str === undefined) return ""; // Si es nulo o indefinido, devolver cadena vacía
-    return String(str) // Convertir a cadena
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
-};
-
+        if (str === null || str === undefined) return ""; // Si es nulo o indefinido, devolver cadena vacía
+        return String(str) // Convertir a cadena
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+    };
 
     // Construir el KML a partir de las capas activas
     const kmlContent = `<?xml version="1.0" encoding="UTF-8"?>
-<kml xmlns="http://www.opengis.net/kml/2.2">
-<Document>
-    <name>${escapeXML(activeCoberturaName)}</name>
-    ${capaActiva
-        .map((feature) => {
-            const properties = feature.properties || {};
-            const coordinates = feature.geometry?.coordinates || [];
-            if (coordinates.length < 2) return ""; // Ignorar geometrías inválidas
+    <kml xmlns="http://www.opengis.net/kml/2.2">
+    <Document>
+        <name>${escapeXML(activeCoberturaName)}</name>
+        ${activeLayer  // Usar activeLayer en lugar de capaActiva
+            .map((feature) => {
+                const properties = feature.properties || {};
+                const coordinates = feature.geometry?.coordinates || [];
+                if (coordinates.length < 2) return ""; // Ignorar geometrías inválidas
 
-            const propsDescription = Object.entries(properties)
-                .map(
-                    ([key, value]) =>
-                        `<b>${escapeXML(key)}:</b> ${escapeXML(String(value))}`
-                )
-                .join("<br>");
+                const propsDescription = Object.entries(properties)
+                    .map(
+                        ([key, value]) =>
+                            `<b>${escapeXML(key)}:</b> ${escapeXML(String(value))}`
+                    )
+                    .join("<br>");
 
-            return `
-    <Placemark>
-        <name>${escapeXML(properties.ID || "Sin nombre")}</name>
-        <description><![CDATA[${propsDescription}]]></description>
-        <Point>
-            <coordinates>${coordinates[0]},${coordinates[1]},0</coordinates>
-        </Point>
-    </Placemark>`;
-        })
-        .join("")}
-</Document>
-</kml>`;
+                return `
+        <Placemark>
+            <name>${escapeXML(properties.ID || "Sin nombre")}</name>
+            <description><![CDATA[${propsDescription}]]></description>
+            <Point>
+                <coordinates>${coordinates[0]},${coordinates[1]},0</coordinates>
+            </Point>
+        </Placemark>`;
+            })
+            .join("")}
+    </Document>
+    </kml>`;
 
     // Crear el archivo KMZ usando JSZip
     try {
@@ -239,14 +239,14 @@ async function downloadKMZ() {
 
 // Función para descargar en formato GeoJSON
 function downloadGeoJSON() {
-    if (!capaActiva) {
+    if (!activeLayer) {  // Usar activeLayer en lugar de capaActiva
         alert("No hay cobertura activa para descargar.");
         return;
     }
 
     const geojsonData = {
         type: "FeatureCollection",
-        features: capaActiva
+        features: activeLayer  // Usar activeLayer
     };
 
     const geojsonBlob = new Blob([JSON.stringify(geojsonData)], { type: "application/geo+json" });
@@ -256,15 +256,15 @@ function downloadGeoJSON() {
     link.click();
 }
 
-//Función para descargar en Excel
+// Función para descargar en formato Excel
 function downloadExcel() {
-    if (!capaActiva) {
+    if (!activeLayer) {  // Usar activeLayer en lugar de capaActiva
         alert("No hay cobertura activa para descargar.");
         return;
     }
 
     // Convertir el JSON de la capa activa en un formato adecuado para Excel
-    const excelData = !capaActiva.map(feature => {
+    const excelData = activeLayer.map(feature => {  // Usar activeLayer
         return feature.properties;  // Obtener solo las propiedades para el Excel
     });
 
@@ -276,7 +276,6 @@ function downloadExcel() {
     // Descargar el archivo Excel
     XLSX.writeFile(wb, `${activeCoberturaName}_.xlsx`);
 }
-
 // Iniciar con el cargado de temáticas
 cargarSelector();
 </script>
