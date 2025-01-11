@@ -202,30 +202,34 @@ function descargarKMZ() {
         header: true,
         dynamicTyping: true,
         complete: function(results) {
-            // Crear KML
-            let kmlContent = '<?xml version="1.0" encoding="UTF-8"?>';
-            kmlContent += '<kml xmlns="http://www.opengis.net/kml/2.2"><Document>';
+            const kml = `
+            <?xml version="1.0" encoding="UTF-8"?>
+            <kml xmlns="http://www.opengis.net/kml/2.2">
+                <Document>
+                    <name>${selectedCobertura}</name>
+                    ${results.data.map(point => {
+                        if (point.X && point.Y) {
+                            const properties = Object.entries(point)
+                                .filter(([key]) => key !== "X" && key !== "Y")
+                                .map(([key, value]) => `<b>${key}:</b> ${value}<br>`).join("");
+                            return `
+                            <Placemark>
+                                <name>${point.Nombre || "Punto"}</name>
+                                <description><![CDATA[${properties}]]></description>
+                                <Point>
+                                    <coordinates>${point.X},${point.Y},0</coordinates>
+                                </Point>
+                            </Placemark>`;
+                        }
+                    }).filter(Boolean).join("")}
+                </Document>
+            </kml>`;
 
-            results.data.forEach(point => {
-                if (point.X && point.Y) {
-                    kmlContent += '<Placemark>';
-                    kmlContent += `<name>${escapeXML(point.ID)}</name>`;  // Escapar caracteres especiales
-                    kmlContent += `<description>${escapeXML(JSON.stringify(point))}</description>`;  // Escapar caracteres especiales
-                    kmlContent += `<Point><coordinates>${point.X},${point.Y}</coordinates></Point>`;
-                    kmlContent += '</Placemark>';
-                }
-            });
-
-            kmlContent += '</Document></kml>';
-
-            // Crear archivo KMZ (comprimir en ZIP)
             const zip = new JSZip();
-            zip.file("doc.kml", kmlContent);
-
-            // Generar el archivo KMZ y permitir la descarga
-            zip.generateAsync({ type: "blob" }).then(function(content) {
-                const a = document.createElement("a");
+            zip.file(`${selectedCobertura}.kml`, kml);
+            zip.generateAsync({ type: "blob" }).then(content => {
                 const url = URL.createObjectURL(content);
+                const a = document.createElement("a");
                 a.href = url;
                 a.download = `${selectedCobertura}.kmz`;
                 a.click();
@@ -234,21 +238,6 @@ function descargarKMZ() {
         }
     });
 }
-
-// Función para escapar caracteres especiales para XML
-function escapeXML(str) {
-    return str.replace(/[<>&'"]/g, function (char) {
-        switch (char) {
-            case '<': return '&lt;';
-            case '>': return '&gt;';
-            case '&': return '&amp;';
-            case "'": return '&apos;';
-            case '"': return '&quot;';
-            default: return char;
-        }
-    });
-}
-
 
 // Función para descargar el archivo GeoJSON
 function descargarGeoJSON() {
