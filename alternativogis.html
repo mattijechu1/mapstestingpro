@@ -111,8 +111,8 @@ async function cargarCoberturas() {
     layerControl = L.control.layers().addTo(map);
 
     const selectedTematica = tematicas[tematica];
-    capaActiva = null;
-    activeCoberturaName = "";
+    activeLayer = null;  // Resetear capa activa
+    activeCoberturaName = "";  // Resetear nombre de cobertura
 
     selectedTematica.coberturas.forEach(cobertura => {
         Papa.parse(cobertura.url, {
@@ -126,13 +126,11 @@ async function cargarCoberturas() {
                 results.data.forEach(point => {
                     if (point.X && point.Y) {
                         const latLng = [point.Y, point.X];
-
-                        // Crear contenido del popup dinámicamente
                         let popupContent = "<b>Detalles:</b><br>";
-                        let pointAttributes = {}; // Para almacenar los atributos del punto
+                        let pointAttributes = {};
                         for (const key in point) {
                             if (point[key] && key !== "X" && key !== "Y") {
-                                pointAttributes[key] = point[key]; // Almacenar los atributos
+                                pointAttributes[key] = point[key];
                                 if (key === "FOTO" && point[key].startsWith("http")) {
                                     popupContent += `<img src="${point[key]}" alt="Foto asociada"><br>`;
                                 } else {
@@ -147,17 +145,16 @@ async function cargarCoberturas() {
                             fillColor: "blue",
                             fillOpacity: 0.5
                         })
-                        .bindPopup(popupContent) // Asociar popup al círculo
+                        .bindPopup(popupContent)
                         .addTo(coverageLayer);
 
-                        // Guardar datos para exportar
                         layerData.push({
                             type: "Feature",
                             geometry: {
                                 type: "Point",
                                 coordinates: [point.X, point.Y]
                             },
-                            properties: pointAttributes // Incluir los atributos en las propiedades del GeoJSON
+                            properties: pointAttributes
                         });
                     }
                 });
@@ -165,13 +162,12 @@ async function cargarCoberturas() {
                 coberturaLayers[cobertura.nombre] = coverageLayer;
                 layerControl.addOverlay(coverageLayer, cobertura.nombre);
 
-                // Establecer la capa activa y el nombre de la cobertura
+                // Establecer la capa activa y el nombre de la cobertura cuando sea por defecto
                 if (cobertura.porDefecto) {
-                 coverageLayer.addTo(map);
-                capaActiva = coverageLayer;
-}
-                coverageLayer.on('add', () => capaActiva = coverageLayer);
-
+                    coverageLayer.addTo(map);
+                    activeLayer = layerData; // Actualizar activeLayer
+                    activeCoberturaName = cobertura.nombre;  // Actualizar nombre de cobertura activa
+                }
             }
         });
     });
