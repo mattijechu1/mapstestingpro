@@ -33,14 +33,15 @@
 </div>
 
 <div id="descargar-botones" style="display: none;">
-    <button id="descargar-kmz">Descargar KMZ</button>
+    <button id="descargar-kmz" onclick="descargarKMZ()">Descargar KMZ</button>
     <button id="descargar-geojson" onclick="descargarGeoJSON()">Descargar GeoJSON</button>
     <button id="descargar-excel" onclick="descargarExcel()">Descargar Excel</button>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 <script src="https://unpkg.com/papaparse/papaparse.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script> <!-- Incluyendo la librería XLSX -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/js2kmz@1.0.4/js2kmz.min.js"></script> <!-- Incluyendo la librería js2kmz -->
 
 <script>
 // Mapa de Leaflet centrado en Santiago de Chile
@@ -183,6 +184,62 @@ function mostrarBotonesDescarga() {
     }
 }
 
+// Función para descargar el archivo KMZ
+function descargarKMZ() {
+    const selectedCobertura = document.getElementById('cobertura').value;
+    if (!selectedCobertura) return;
+
+    const selectedTematica = document.getElementById('tematica').value;
+    const cobertura = tematicas[selectedTematica].coberturas.find(c => c.nombre === selectedCobertura);
+    
+    if (!cobertura) return;
+
+    Papa.parse(cobertura.url, {
+        download: true,
+        header: true,
+        dynamicTyping: true,
+        complete: function(results) {
+            const kmlFeatures = results.data.map(point => {
+                if (point.X && point.Y) {
+                    const latLng = [point.Y, point.X];
+                    let description = "";
+                    for (const key in point) {
+                        if (point[key] && key !== "X" && key !== "Y") {
+                            description += `<b>${key}:</b> ${point[key]}<br>`;
+                        }
+                    }
+
+                    return {
+                        type: "Feature",
+                        geometry: {
+                            type: "Point",
+                            coordinates: [point.X, point.Y]
+                        },
+                        properties: {
+                            name: point.ID,
+                            description: description
+                        }
+                    };
+                }
+            }).filter(Boolean);
+
+            const kml = {
+                type: "FeatureCollection",
+                features: kmlFeatures
+            };
+
+            // Convertir a KMZ y permitir la descarga
+            const kmzBlob = js2kmz.kml2kmz(kml);
+            const url = URL.createObjectURL(kmzBlob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `${selectedCobertura}.kmz`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    });
+}
+
 // Función para descargar el archivo GeoJSON
 function descargarGeoJSON() {
     const selectedCobertura = document.getElementById('cobertura').value;
@@ -203,21 +260,27 @@ function descargarGeoJSON() {
                 type: "FeatureCollection",
                 features: results.data.map(point => {
                     if (point.X && point.Y) {
+                        const latLng = [point.Y, point.X];
+                        let properties = {};
+                        for (const key in point) {
+                            if (point[key] && key !== "X" && key !== "Y") {
+                                properties[key] = point[key];
+                            }
+                        }
                         return {
                             type: "Feature",
                             geometry: {
                                 type: "Point",
                                 coordinates: [point.X, point.Y]
                             },
-                            properties: point
+                            properties: properties
                         };
                     }
                 }).filter(Boolean)
             };
 
-            // Crear un archivo GeoJSON descargable
-            const blob = new Blob([JSON.stringify(geojson)], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
+            const geojsonBlob = new Blob([JSON.stringify(geojson)], { type: "application/json" });
+            const url = URL.createObjectURL(geojsonBlob);
             const a = document.createElement("a");
             a.href = url;
             a.download = `${selectedCobertura}.geojson`;
@@ -242,18 +305,15 @@ function descargarExcel() {
         header: true,
         dynamicTyping: true,
         complete: function(results) {
-            // Crear un libro de Excel con las propiedades de los puntos
-            const ws = XLSX.utils.json_to_sheet(results.data);
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, selectedCobertura);
-            
-            // Crear un archivo Excel descargable
+            const ws = XLSX.utils.json_to_sheet(results.data);
+            XLSX.utils.book_append_sheet(wb, ws, "Datos");
             XLSX.writeFile(wb, `${selectedCobertura}.xlsx`);
         }
     });
 }
 
-// Iniciar con el cargado de temáticas
+// Cargar temáticas al inicio
 cargarSelector();
 </script>
 
