@@ -143,9 +143,6 @@ async function cargarSelector() {
     await obtenerTematicas();
     const tematicaSelect = document.getElementById('tematica');
 
-    // Limpiar las opciones previas
-    tematicaSelect.innerHTML = '';
-
     Object.keys(tematicas).forEach(tematica => {
         const option = document.createElement('option');
         option.value = tematica;
@@ -158,7 +155,6 @@ async function cargarSelector() {
         cargarCoberturas();
     }
 }
-
 
 // Función para cargar coberturas
 async function cargarCoberturas() {
@@ -197,22 +193,22 @@ async function cargarCoberturas() {
                         const latLng = [point.Y, point.X];
 
                         // Crear contenido del popup dinámicamente
-                       let popupContent = "<b>Detalles:</b><br>";
-for (const key in point) {
-    if (point[key] && key !== "X" && key !== "Y") {
-        if (key === "FOTO" && point[key].startsWith("http")) {
-            popupContent += `<img src="${point[key]}" alt="Foto asociada" style="width: 100%; height: auto;"><br>`;
-        } else {
-            popupContent += `<b>${key}:</b> ${point[key]}<br>`;
-        }
-    }
-}
+                        let popupContent = "<b>Detalles:</b><br>";
+                        for (const key in point) {
+                            if (point[key] && key !== "X" && key !== "Y") {
+                                if (key === "FOTO" && point[key].startsWith("http")) {
+                                    popupContent += `<img src="${point[key]}" alt="Foto asociada"><br>`;
+                                } else {
+                                    popupContent += `<b>${key}:</b> ${point[key]}<br>`;
+                                }
+                            }
+                        }
 
-L.circleMarker(latLng, {
-    radius: 5,
-    color: "blue",
-    fillColor: "blue",
-    fillOpacity: 0.5
+                        L.circleMarker(latLng, {
+                            radius: 5,
+                            color: "blue",
+                            fillColor: "blue",
+                            fillOpacity: 0.5
                         })
                         .bindPopup(popupContent) // Asociar popup al círculo
                         .addTo(coverageLayer);
