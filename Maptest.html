@@ -230,6 +230,8 @@ async function cargarCoberturas() {
 // Función para mostrar los botones de descarga
 function mostrarBotonesDescarga() {
     const selectedCobertura = document.getElementById('cobertura').value;
+    console.log("Cobertura seleccionada:", selectedCobertura);
+    
     if (selectedCobertura) {
         document.getElementById('descargar-botones').style.display = 'block';
     } else {
@@ -240,21 +242,32 @@ function mostrarBotonesDescarga() {
 cargarSelector();
 </script>
 
-// Función para descargar el archivo KMZ usando JSZip
 function descargarKMZ() {
     const selectedCobertura = document.getElementById('cobertura').value;
-    if (!selectedCobertura) return;
-
     const selectedTematica = document.getElementById('tematica').value;
-    const cobertura = tematicas[selectedTematica].coberturas.find(c => c.nombre === selectedCobertura);
 
-    if (!cobertura) return;
+    if (!selectedTematica || !selectedCobertura) {
+        alert("Por favor, seleccione una temática y cobertura válidas.");
+        return;
+    }
+
+    const cobertura = tematicas[selectedTematica]?.coberturas?.find(c => c.nombre === selectedCobertura);
+
+    if (!cobertura || !cobertura.url) {
+        alert("URL de la cobertura no válida o no encontrada.");
+        return;
+    }
 
     Papa.parse(cobertura.url, {
         download: true,
         header: true,
         dynamicTyping: true,
         complete: function(results) {
+            if (!results.data || results.data.length === 0) {
+                alert("No se encontraron datos en la cobertura seleccionada.");
+                return;
+            }
+
             const kml = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
     <Document>
@@ -291,30 +304,39 @@ function descargarKMZ() {
     });
 }
 
-// Función para descargar el archivo GeoJSON
 function descargarGeoJSON() {
     const selectedCobertura = document.getElementById('cobertura').value;
-    if (!selectedCobertura) return;
-
     const selectedTematica = document.getElementById('tematica').value;
-    const cobertura = tematicas[selectedTematica].coberturas.find(c => c.nombre === selectedCobertura);
 
-    if (!cobertura) return;
+    if (!selectedTematica || !selectedCobertura) {
+        alert("Por favor, seleccione una temática y cobertura válidas.");
+        return;
+    }
+
+    const cobertura = tematicas[selectedTematica]?.coberturas?.find(c => c.nombre === selectedCobertura);
+
+    if (!cobertura || !cobertura.url) {
+        alert("URL de la cobertura no válida o no encontrada.");
+        return;
+    }
 
     Papa.parse(cobertura.url, {
         download: true,
         header: true,
         dynamicTyping: true,
         complete: function(results) {
-            // Convertir los puntos a formato GeoJSON
+            if (!results.data || results.data.length === 0) {
+                alert("No se encontraron datos en la cobertura seleccionada.");
+                return;
+            }
+
             const geojson = {
                 type: "FeatureCollection",
                 features: results.data.map(point => {
                     if (point.X && point.Y) {
-                        const latLng = [point.Y, point.X];
-                        let properties = {};
+                        const properties = {};
                         for (const key in point) {
-                            if (point[key] && key !== "X" && key !== "Y") {
+                            if (key !== "X" && key !== "Y") {
                                 properties[key] = point[key];
                             }
                         }
@@ -341,21 +363,32 @@ function descargarGeoJSON() {
     });
 }
 
-// Función para descargar el archivo Excel
 function descargarExcel() {
     const selectedCobertura = document.getElementById('cobertura').value;
-    if (!selectedCobertura) return;
-
     const selectedTematica = document.getElementById('tematica').value;
-    const cobertura = tematicas[selectedTematica].coberturas.find(c => c.nombre === selectedCobertura);
 
-    if (!cobertura) return;
+    if (!selectedTematica || !selectedCobertura) {
+        alert("Por favor, seleccione una temática y cobertura válidas.");
+        return;
+    }
+
+    const cobertura = tematicas[selectedTematica]?.coberturas?.find(c => c.nombre === selectedCobertura);
+
+    if (!cobertura || !cobertura.url) {
+        alert("URL de la cobertura no válida o no encontrada.");
+        return;
+    }
 
     Papa.parse(cobertura.url, {
         download: true,
         header: true,
         dynamicTyping: true,
         complete: function(results) {
+            if (!results.data || results.data.length === 0) {
+                alert("No se encontraron datos en la cobertura seleccionada.");
+                return;
+            }
+
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.json_to_sheet(results.data);
             XLSX.utils.book_append_sheet(wb, ws, selectedCobertura);
