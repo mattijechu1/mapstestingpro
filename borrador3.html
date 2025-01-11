@@ -112,6 +112,7 @@ async function cargarCoberturas() {
 
     const selectedTematica = tematicas[tematica];
     activeLayer = null;
+    activeCoberturaName = "";
 
     selectedTematica.coberturas.forEach(cobertura => {
         Papa.parse(cobertura.url, {
@@ -168,7 +169,7 @@ async function cargarCoberturas() {
                 if (cobertura.porDefecto) {
                     coverageLayer.addTo(map);
                     activeLayer = layerData; // Establecer la capa activa
-                    activeCoberturaName = cobertura.nombre; // Establecer el nombre de la cobertura activa
+                    activeCoberturaName = cobertura.nombre;  // Establecer el nombre de la cobertura activa
                 }
             }
         });
@@ -285,4 +286,3 @@ cargarSelector();
 
 </body>
 </html>
-
