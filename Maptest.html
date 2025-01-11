@@ -6,87 +6,37 @@
     <title>Visor de Mapas Dinámico</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-        }
-
-        #menu-container {
-            width: 220px;
-            padding: 10px;
-            background-color: #f9f9f9;
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1000;
-            border-right: 1px solid #ccc;
-            height: 100vh;
-            box-sizing: border-box;
-        }
-
-        #menu-container label {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 14px;
-        }
-
-        #menu-container select {
-            width: 100%;
-            padding: 5px;
-            margin-bottom: 10px;
-            box-sizing: border-box;
-        }
-
-        #descargar-botones button {
-            display: block;
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 10px;
-            background-color: #007BFF;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        #descargar-botones button:hover {
-            background-color: #0056b3;
-        }
-
-        #map {
-            height: 100vh;
-            width: calc(100% - 220px);
-            position: absolute;
-            top: 0;
-            left: 220px;
-        }
+        #map { height: 600px; }
+        #selector { margin: 10px 0; }
+        img { max-width: 100%; height: auto; margin-top: 10px; border: 1px solid #ccc; }
+        #cobertura-selector { margin-top: 10px; }
+        #descargar-botones { margin-top: 10px; }
+        button { margin-right: 10px; }
     </style>
 </head>
 <body>
 
-<div id="menu-container">
-    <div id="selector">
-        <label for="tematica">Seleccionar temática:</label>
-        <select id="tematica" onchange="cargarCoberturas()">
-            <!-- Las temáticas se cargarán dinámicamente -->
-        </select>
-    </div>
-
-    <div id="cobertura-selector">
-        <label for="cobertura">Descargar cobertura:</label>
-        <select id="cobertura" onchange="mostrarBotonesDescarga()">
-            <!-- Las coberturas se cargarán dinámicamente según la temática -->
-        </select>
-    </div>
-
-    <div id="descargar-botones" style="display: none;">
-        <button id="descargar-kmz" onclick="descargarKMZ()">Descargar KMZ</button>
-        <button id="descargar-geojson" onclick="descargarGeoJSON()">Descargar GeoJSON</button>
-        <button id="descargar-excel" onclick="descargarExcel()">Descargar Excel</button>
-    </div>
+<div id="selector">
+    <label for="tematica">Selecciona una Temática:</label>
+    <select id="tematica" onchange="cargarCoberturas()">
+        <!-- Las temáticas se cargarán dinámicamente -->
+    </select>
 </div>
 
 <div id="map"></div>
+
+<div id="cobertura-selector">
+    <label for="cobertura">Selecciona una Cobertura:</label>
+    <select id="cobertura" onchange="mostrarBotonesDescarga()">
+        <!-- Las coberturas se cargarán dinámicamente según la temática -->
+    </select>
+</div>
+
+<div id="descargar-botones" style="display: none;">
+    <button id="descargar-kmz" onclick="descargarKMZ()">Descargar KMZ</button>
+    <button id="descargar-geojson" onclick="descargarGeoJSON()">Descargar GeoJSON</button>
+    <button id="descargar-excel" onclick="descargarExcel()">Descargar Excel</button>
+</div>
 
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 <script src="https://unpkg.com/papaparse/papaparse.min.js"></script>
@@ -98,7 +48,7 @@
 let js2kmzLoadedFlag = false;
 
 // Mapa de Leaflet centrado en Santiago de Chile
-const map = L.map('map').setView([-33.4311, -70.6045], 14.3); // Centrado en Santiago con zoom nivel 14.3
+const map = L.map('map').setView([-33.4311, -70.6045], 14.3); // Centrado en Santiago con zoom nivel 12
 
 // Cargar el mapa base
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
@@ -197,7 +147,7 @@ async function cargarCoberturas() {
                         for (const key in point) {
                             if (point[key] && key !== "X" && key !== "Y") {
                                 if (key === "FOTO" && point[key].startsWith("http")) {
-                                    popupContent += `<img src="${point[key]}" alt="Foto asociada"><br>`;
+                                    popupContent += `<img src="${point[key]}" alt="Foto asociada" style="width: 100%; height: auto;"><br>`;
                                 } else {
                                     popupContent += `<b>${key}:</b> ${point[key]}<br>`;
                                 }
