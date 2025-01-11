@@ -161,7 +161,7 @@ async function cargarCoberturas() {
                     }
                 });
 
-                coberturaLayers[cobertura.nombre] = { layer: coverageLayer, data: layerData };
+                coberturaLayers[cobertura.nombre] = coverageLayer;
                 layerControl.addOverlay(coverageLayer, cobertura.nombre);
 
                 // Establecer la capa activa y el nombre de la cobertura
@@ -175,24 +175,23 @@ async function cargarCoberturas() {
     });
 }
 
-// Actualizar las capas activas dinámicamente
-map.on('overlayadd', function(e) {
-    const layerName = Object.keys(coberturaLayers).find(name => coberturaLayers[name].layer === e.layer);
-    if (layerName) {
-        activeLayer = coberturaLayers[layerName].data;
-        activeCoberturaName = layerName;
+async function downloadKMZ() {
+    if (!activeLayer) {
+        alert("No hay cobertura activa para descargar.");
+        return;
     }
-});
 
-map.on('overlayremove', function(e) {
-    if (activeLayer && coberturaLayers[activeCoberturaName]?.layer === e.layer) {
-        activeLayer = null;
-        activeCoberturaName = "";
-    }
-});
+    const escapeXML = (str) => {
+    if (str === null || str === undefined) return ""; // Si es nulo o indefinido, devolver cadena vacía
+    return String(str) // Convertir a cadena
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+};
 
- // Construir el KML a partir de las capas activas
-    const kmlContent = <?xml version="1.0" encoding="UTF-8"?>
+
+    // Construir el KML a partir de las capas activas
+    const kmlContent = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
 <Document>
     <name>${escapeXML(activeCoberturaName)}</name>
@@ -205,22 +204,22 @@ map.on('overlayremove', function(e) {
             const propsDescription = Object.entries(properties)
                 .map(
                     ([key, value]) =>
-                        <b>${escapeXML(key)}:</b> ${escapeXML(String(value))}
+                        `<b>${escapeXML(key)}:</b> ${escapeXML(String(value))}`
                 )
                 .join("<br>");
 
-            return 
+            return `
     <Placemark>
         <name>${escapeXML(properties.ID || "Sin nombre")}</name>
         <description><![CDATA[${propsDescription}]]></description>
         <Point>
             <coordinates>${coordinates[0]},${coordinates[1]},0</coordinates>
         </Point>
-    </Placemark>;
+    </Placemark>`;
         })
         .join("")}
 </Document>
-</kml>;
+</kml>`;
 
     // Crear el archivo KMZ usando JSZip
     try {
@@ -232,7 +231,7 @@ map.on('overlayremove', function(e) {
         // Crear un enlace para descargar el KMZ
         const downloadLink = document.createElement("a");
         downloadLink.href = URL.createObjectURL(kmzBlob);
-        downloadLink.download = ${activeCoberturaName || "archivo"}.kmz;
+        downloadLink.download = `${activeCoberturaName || "archivo"}.kmz`;
         downloadLink.click();
     } catch (error) {
         console.error("Error al generar el archivo KMZ:", error);
@@ -255,7 +254,7 @@ function downloadGeoJSON() {
     const geojsonBlob = new Blob([JSON.stringify(geojsonData)], { type: "application/geo+json" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(geojsonBlob);
-    link.download = ${activeCoberturaName}_.geojson; // Usar el nombre de la cobertura activa
+    link.download = `${activeCoberturaName}_.geojson`; // Usar el nombre de la cobertura activa
     link.click();
 }
 
@@ -277,7 +276,7 @@ function downloadExcel() {
     XLSX.utils.book_append_sheet(wb, ws, "Cobertura");
 
     // Descargar el archivo Excel
-    XLSX.writeFile(wb, ${activeCoberturaName}_.xlsx);
+    XLSX.writeFile(wb, `${activeCoberturaName}_.xlsx`);
 }
 
 // Iniciar con el cargado de temáticas
@@ -286,3 +285,4 @@ cargarSelector();
 
 </body>
 </html>
+
