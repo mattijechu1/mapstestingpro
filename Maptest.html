@@ -160,9 +160,6 @@ async function cargarSelector() {
 }
 
 
-// Crear una variable para llevar un registro de las coberturas ya añadidas al layer control
-let capasAgregadas = new Set();
-
 // Función para cargar coberturas
 async function cargarCoberturas() {
     const tematicaSelect = document.getElementById('tematica');
@@ -172,6 +169,9 @@ async function cargarCoberturas() {
     Object.values(coberturaLayers).forEach(layer => map.removeLayer(layer));
     coberturaLayers = {};
 
+    layerControl.remove();
+    layerControl = L.control.layers().addTo(map);
+
     // Limpiar el menú de coberturas
     const coberturaSelect = document.getElementById('cobertura');
     coberturaSelect.innerHTML = ''; // Limpiar opciones previas
@@ -180,62 +180,54 @@ async function cargarCoberturas() {
 
     // Llenar el selector de coberturas
     selectedTematica.coberturas.forEach(cobertura => {
-        // Comprobar si la cobertura ya fue agregada al layerControl
-        if (!capasAgregadas.has(cobertura.nombre)) {
-            // Si no está, agregarla
-            const option = document.createElement('option');
-            option.value = cobertura.nombre;
-            option.textContent = cobertura.nombre;
-            coberturaSelect.appendChild(option);
+        const option = document.createElement('option');
+        option.value = cobertura.nombre;
+        option.textContent = cobertura.nombre;
+        coberturaSelect.appendChild(option);
 
-            Papa.parse(cobertura.url, {
-                download: true,
-                header: true,
-                dynamicTyping: true,
-                complete: function(results) {
-                    const coverageLayer = L.layerGroup();
+        Papa.parse(cobertura.url, {
+            download: true,
+            header: true,
+            dynamicTyping: true,
+            complete: function(results) {
+                const coverageLayer = L.layerGroup();
 
-                    results.data.forEach(point => {
-                        if (point.X && point.Y) {
-                            const latLng = [point.Y, point.X];
+                results.data.forEach(point => {
+                    if (point.X && point.Y) {
+                        const latLng = [point.Y, point.X];
 
-                            // Crear contenido del popup dinámicamente
-                            let popupContent = "<b>Detalles:</b><br>";
-                            for (const key in point) {
-                                if (point[key] && key !== "X" && key !== "Y") {
-                                    if (key === "FOTO" && point[key].startsWith("http")) {
-                                        popupContent += `<img src="${point[key]}" alt="Foto asociada" style="width: 100%; height: auto;"><br>`;
-                                    } else {
-                                        popupContent += `<b>${key}:</b> ${point[key]}<br>`;
-                                    }
-                                }
-                            }
-
-                            L.circleMarker(latLng, {
-                                radius: 5,
-                                color: "blue",
-                                fillColor: "blue",
-                                fillOpacity: 0.5
-                            })
-                                .bindPopup(popupContent) // Asociar popup al círculo
-                                .addTo(coverageLayer);
-                        }
-                    });
-
-                    // Agregar la capa al control solo si no ha sido añadida
-                    if (!capasAgregadas.has(cobertura.nombre)) {
-                        coberturaLayers[cobertura.nombre] = coverageLayer;
-                        layerControl.addOverlay(coverageLayer, cobertura.nombre);
-                        capasAgregadas.add(cobertura.nombre); // Marcar como agregada
-
-                        // Activar la capa por defecto
-                        if (cobertura.porDefecto) {
-                            coverageLayer.addTo(map);
-                        }
-                    }
-                }
-            });
+                        // Crear contenido del popup dinámicamente
+                       let popupContent = "<b>Detalles:</b><br>";
+for (const key in point) {
+    if (point[key] && key !== "X" && key !== "Y") {
+        if (key === "FOTO" && point[key].startsWith("http")) {
+            popupContent += `<img src="${point[key]}" alt="Foto asociada" style="width: 100%; height: auto;"><br>`;
+        } else {
+            popupContent += `<b>${key}:</b> ${point[key]}<br>`;
         }
+    }
+}
+
+L.circleMarker(latLng, {
+    radius: 5,
+    color: "blue",
+    fillColor: "blue",
+    fillOpacity: 0.5
+                        })
+                        .bindPopup(popupContent) // Asociar popup al círculo
+                        .addTo(coverageLayer);
+                    }
+                });
+
+                coberturaLayers[cobertura.nombre] = coverageLayer;
+                layerControl.addOverlay(coverageLayer, cobertura.nombre);
+
+                // Activar la capa por defecto
+                if (cobertura.porDefecto) {
+                    coverageLayer.addTo(map);
+                }
+            }
+        });
     });
 }
 
