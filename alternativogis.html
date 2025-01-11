@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visor de Mapas Dinámico</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        #map { height: 600px; }
+        #selector { margin: 10px 0; }
+        #download { margin: 10px 0; }
+        img { max-width: 100%; height: auto; margin-top: 10px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+
+<div id="selector">
+    <label for="tematica">Selecciona una Temática:</label>
+    <select id="tematica" onchange="cargarCoberturas()">
+        <!-- Las temáticas se cargarán dinámicamente -->
+    </select>
+</div>
+
+<div id="map"></div>
+
+<div id="download">
+    <button onclick="descargarGeoJSON()">Descargar GeoJSON de la cobertura activa</button>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script src="https://unpkg.com/papaparse/papaparse.min.js"></script>
+<script>
+// Mapa de Leaflet centrado en Santiago de Chile
+const map = L.map('map').setView([-33.4489, -70.6693], 12); // Centrado en Santiago con zoom nivel 12
+
+// Cargar el mapa base
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+// URL de Google Sheets en formato CSV
+const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQTRULBpYlPIfLrNuL-SZ6Zf1kIdBJYF8HKdBLIpMAw69vUNQFRNmEMt_tE3Eq3Ag/pub?gid=389153198&single=true&output=csv";
+
+// Variables globales
+let tematicas = {};
+let layerControl = L.control.layers().addTo(map);
+let coberturaLayers = {};
+let capaActiva = null;
+
+// Obtener datos desde Google Sheets
+async function cargarDatosCSV() {
+    const response = await fetch(csvUrl);
+    const text = await response.text();
+    return Papa.parse(text, { header: true, dynamicTyping: true }).data;
+}
+
+// Obtener temáticas y coberturas
+async function obtenerTematicas() {
+    const rows = await cargarDatosCSV();
+    tematicas = {};
+
+    rows.forEach(row => {
+        const { ID, Temática, Cobertura, 'Activo por defecto': activoPorDefecto, URL } = row;
+
+        if (!tematicas[Temática]) {
+            tematicas[Temática] = { id: ID, coberturas: [] };
+        }
+
+        tematicas[Temática].coberturas.push({
+            nombre: Cobertura,
+            url: URL,
+            porDefecto: activoPorDefecto === 'Sí'
+        });
+    });
+}
+
+// Llenar selector de temáticas
+async function cargarSelector() {
+    await obtenerTematicas();
+    const tematicaSelect = document.getElementById('tematica');
+
+    Object.keys(tematicas).forEach(tematica => {
+        const option = document.createElement('option');
+        option.value = tematica;
+        option.textContent = tematica;
+        tematicaSelect.appendChild(option);
+    });
+
+    if (tematicaSelect.value) {
+        cargarCoberturas();
+    }
+}
+
+// Cargar coberturas según la temática seleccionada
+async function cargarCoberturas() {
+    const tematicaSelect = document.getElementById('tematica');
+    const tematica = tematicaSelect.value;
+
+    Object.values(coberturaLayers).forEach(layer => map.removeLayer(layer));
+    coberturaLayers = {};
+    capaActiva = null;
+
+    layerControl.remove();
+    layerControl = L.control.layers().addTo(map);
+
+    const selectedTematica = tematicas[tematica];
+
+    selectedTematica.coberturas.forEach(cobertura => {
+        Papa.parse(cobertura.url, {
+            download: true,
+            header: true,
+            dynamicTyping: true,
+            complete: function(results) {
+                const coverageLayer = L.layerGroup();
+
+                results.data.forEach(point => {
+                    if (point.X && point.Y) {
+                        const latLng = [point.Y, point.X];
+                        let popupContent = "<b>Detalles:</b><br>";
+                        for (const key in point) {
+                            if (point[key] && key !== "X" && key !== "Y") {
+                                if (key === "FOTO" && point[key].startsWith("http")) {
+                                    popupContent += `<img src="${point[key]}" alt="Foto asociada"><br>`;
+                                } else {
+                                    popupContent += `<b>${key}:</b> ${point[key]}<br>`;
+                                }
+                            }
+                        }
+
+                        L.circleMarker(latLng, {
+                            radius: 5,
+                            color: "blue",
+                            fillColor: "blue",
+                            fillOpacity: 0.5
+                        })
+                        .bindPopup(popupContent)
+                        .addTo(coverageLayer);
+                    }
+                });
+
+                coberturaLayers[cobertura.nombre] = coverageLayer;
+                layerControl.addOverlay(coverageLayer, cobertura.nombre);
+
+                if (cobertura.porDefecto) {
+                    coverageLayer.addTo(map);
+                    capaActiva = coverageLayer;
+                }
+
+                coverageLayer.on('add', () => capaActiva = coverageLayer);
+            }
+        });
+    });
+}
+
+// Descargar GeoJSON de la capa activa
+function descargarGeoJSON() {
+    if (!capaActiva) {
+        alert("No hay una capa activa para descargar.");
+        return;
+    }
+
+    const geojson = capaActiva.toGeoJSON();
+    const blob = new Blob([JSON.stringify(geojson)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "cobertura_activa.geojson";
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+
+// Inicializar el mapa
+cargarSelector();
+</script>
+
+</body>
+</html>
