@@ -114,7 +114,6 @@ async function cargarDatosCSV() {
 }
 
 // Variables globales
-// Variables globales
 let tematicas = {};
 let layerControl = L.control.layers().addTo(map);
 let coberturaLayers = {};
@@ -139,13 +138,13 @@ async function obtenerTematicas() {
     });
 }
 
+// Llenar el selector de temáticas
 async function cargarSelector() {
     await obtenerTematicas();
     const tematicaSelect = document.getElementById('tematica');
 
     // Limpiar las opciones previas
     tematicaSelect.innerHTML = '';
-
     Object.keys(tematicas).forEach(tematica => {
         const option = document.createElement('option');
         option.value = tematica;
@@ -168,9 +167,8 @@ async function cargarCoberturas() {
     Object.values(coberturaLayers).forEach(layer => map.removeLayer(layer));
     coberturaLayers = {};
 
-    // No eliminar el layerControl, solo actualizarlo
-    layerControl._layers = {}; // Limpiar el control de capas sin eliminarlo
-    layerControl._addLayers(); // Actualizar el control
+    layerControl.remove();
+    layerControl = L.control.layers().addTo(map);
 
     // Limpiar el menú de coberturas
     const coberturaSelect = document.getElementById('cobertura');
@@ -185,53 +183,49 @@ async function cargarCoberturas() {
         option.textContent = cobertura.nombre;
         coberturaSelect.appendChild(option);
 
-        // Verificar si la capa ya existe en coberturaLayers
-        if (!coberturaLayers[cobertura.nombre]) {
-            Papa.parse(cobertura.url, {
-                download: true,
-                header: true,
-                dynamicTyping: true,
-                complete: function(results) {
-                    const coverageLayer = L.layerGroup();
+        Papa.parse(cobertura.url, {
+            download: true,
+            header: true,
+            dynamicTyping: true,
+            complete: function(results) {
+                const coverageLayer = L.layerGroup();
 
-                    results.data.forEach(point => {
-                        if (point.X && point.Y) {
-                            const latLng = [point.Y, point.X];
+                results.data.forEach(point => {
+                    if (point.X && point.Y) {
+                        const latLng = [point.Y, point.X];
 
-                            // Crear contenido del popup dinámicamente
-                            let popupContent = "<b>Detalles:</b><br>";
-                            for (const key in point) {
-                                if (point[key] && key !== "X" && key !== "Y") {
-                                    if (key === "FOTO" && point[key].startsWith("http")) {
-                                        popupContent += `<img src="${point[key]}" alt="Foto asociada" style="width: 100%; height: auto;"><br>`;
-                                    } else {
-                                        popupContent += `<b>${key}:</b> ${point[key]}<br>`;
-                                    }
-                                }
-                            }
-
-                            L.circleMarker(latLng, {
-                                radius: 5,
-                                color: "blue",
-                                fillColor: "blue",
-                                fillOpacity: 0.5
-                            })
-                            .bindPopup(popupContent) // Asociar popup al círculo
-                            .addTo(coverageLayer);
-                        }
-                    });
-
-                    // Solo agregar si no existe previamente
-                    coberturaLayers[cobertura.nombre] = coverageLayer;
-                    layerControl.addOverlay(coverageLayer, cobertura.nombre);
-
-                    // Activar la capa por defecto
-                    if (cobertura.porDefecto) {
-                        coverageLayer.addTo(map);
-                    }
-                }
-            });
+                        // Crear contenido del popup dinámicamente
+                       let popupContent = "<b>Detalles:</b><br>";
+for (const key in point) {
+    if (point[key] && key !== "X" && key !== "Y") {
+        if (key === "FOTO" && point[key].startsWith("http")) {
+            popupContent += `<img src="${point[key]}" alt="Foto asociada" style="width: 100%; height: auto;"><br>`;
+        } else {
+            popupContent += `<b>${key}:</b> ${point[key]}<br>`;
         }
+    }
+}
+
+L.circleMarker(latLng, {
+    radius: 5,
+    color: "blue",
+    fillColor: "blue",
+    fillOpacity: 0.5
+                        })
+                        .bindPopup(popupContent) // Asociar popup al círculo
+                        .addTo(coverageLayer);
+                    }
+                });
+
+                coberturaLayers[cobertura.nombre] = coverageLayer;
+                layerControl.addOverlay(coverageLayer, cobertura.nombre);
+
+                // Activar la capa por defecto
+                if (cobertura.porDefecto) {
+                    coverageLayer.addTo(map);
+                }
+            }
+        });
     });
 }
 
@@ -239,7 +233,7 @@ async function cargarCoberturas() {
 function mostrarBotonesDescarga() {
     const selectedCobertura = document.getElementById('cobertura').value;
     console.log("Cobertura seleccionada:", selectedCobertura);
-    
+
     if (selectedCobertura) {
         document.getElementById('descargar-botones').style.display = 'block';
     } else {
