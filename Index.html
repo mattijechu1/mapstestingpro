@@ -6,7 +6,11 @@
     <title>Visor de Mapas Dinámico</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <style>
-        #map { height: 600px; }
+        #map { height: 731px; 
+            width: calc(100% - 220px);
+            position: absolute;
+            top: 0;
+            left: 220px;}
         #selector { margin: 10px 0; }
         img { max-width: 100%; height: auto; margin-top: 10px; border: 1px solid #ccc; }
         #cobertura-selector { margin-top: 10px; }
@@ -17,7 +21,7 @@
 <body>
 
 <div id="selector">
-    <label for="tematica">Selecciona una Temática:</label>
+    <label for="tematica">Selecciona una Temática:</label> <br>
     <select id="tematica" onchange="cargarCoberturas()">
         <!-- Las temáticas se cargarán dinámicamente -->
     </select>
@@ -26,16 +30,19 @@
 <div id="map"></div>
 
 <div id="cobertura-selector">
-    <label for="cobertura">Selecciona una Cobertura:</label>
+    <label for="cobertura">Selecciona una Cobertura:</label> <br>
     <select id="cobertura" onchange="mostrarBotonesDescarga()">
         <!-- Las coberturas se cargarán dinámicamente según la temática -->
     </select>
 </div>
 
 <div id="descargar-botones" style="display: none;">
-    <button id="descargar-kmz" onclick="descargarKMZ()">Descargar KMZ</button>
-    <button id="descargar-geojson" onclick="descargarGeoJSON()">Descargar GeoJSON</button>
-    <button id="descargar-excel" onclick="descargarExcel()">Descargar Excel</button>
+    <button id="descargar-kmz" onclick="descargarKMZ()">Descargar KMZ</button> <br>
+    <br>
+    <button id="descargar-geojson" onclick="descargarGeoJSON()">Descargar GeoJSON</button> <br>
+    <br>
+    <button id="descargar-excel" onclick="descargarExcel()">Descargar Excel</button> <br>
+    <br>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
