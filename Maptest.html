@@ -6,71 +6,87 @@
     <title>Visor de Mapas Dinámico</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <style>
-        #map { 
-            height: 92vh;
-            width: 85%;
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        #menu-container {
+            width: 220px;
+            padding: 10px;
+            background-color: #f9f9f9;
             position: absolute;
-            left: 220px;
-            top: -2px;
-        }
-        
-        /* Estilo para el contenedor de los selectores */
-        #selector, #cobertura-selector {
-            position: relative; 
-            margin-bottom: 20px; /* Espaciado entre los elementos */
-            display: block;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            border-right: 1px solid #ccc;
+            height: 100vh;
+            box-sizing: border-box;
         }
 
-        /* Estilo para el botón y selector */
-        #selector select, #cobertura-selector select {
-            margin-top: 10px;
-            padding: 5px 10px;
-            width: 100%; /* Ajusta el ancho al contenedor */
-        }
-
-        #selector label, #cobertura-selector label {
+        #menu-container label {
             display: block;
             margin-bottom: 5px;
             font-size: 14px;
         }
 
-        /* Estilo adicional para el botón de descarga */
+        #menu-container select {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+
         #descargar-botones button {
-            display: inline-block;
-            margin-right: 10px;
-            margin-top: 10px;
-            padding: 10px 20px;
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
             background-color: #007BFF;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
         }
+
+        #descargar-botones button:hover {
+            background-color: #0056b3;
+        }
+
+        #map {
+            height: 100vh;
+            width: calc(100% - 220px);
+            position: absolute;
+            top: 0;
+            left: 220px;
+        }
     </style>
 </head>
 <body>
 
-<div id="selector">
-    <label for="tematica">Seleccionar temática:</label>
-    <select id="tematica" onchange="cargarCoberturas()">
-        <!-- Las temáticas se cargarán dinámicamente -->
-    </select>
+<div id="menu-container">
+    <div id="selector">
+        <label for="tematica">Seleccionar temática:</label>
+        <select id="tematica" onchange="cargarCoberturas()">
+            <!-- Las temáticas se cargarán dinámicamente -->
+        </select>
+    </div>
+
+    <div id="cobertura-selector">
+        <label for="cobertura">Descargar cobertura:</label>
+        <select id="cobertura" onchange="mostrarBotonesDescarga()">
+            <!-- Las coberturas se cargarán dinámicamente según la temática -->
+        </select>
+    </div>
+
+    <div id="descargar-botones" style="display: none;">
+        <button id="descargar-kmz" onclick="descargarKMZ()">Descargar KMZ</button>
+        <button id="descargar-geojson" onclick="descargarGeoJSON()">Descargar GeoJSON</button>
+        <button id="descargar-excel" onclick="descargarExcel()">Descargar Excel</button>
+    </div>
 </div>
 
 <div id="map"></div>
-
-<div id="cobertura-selector">
-    <label for="cobertura">Descargar cobertura:</label>
-    <select id="cobertura" onchange="mostrarBotonesDescarga()">
-        <!-- Las coberturas se cargarán dinámicamente según la temática -->
-    </select>
-</div>
-
-<div id="descargar-botones" style="display: none;">
-    <button id="descargar-kmz" onclick="descargarKMZ()">Descargar KMZ</button>
-    <button id="descargar-geojson" onclick="descargarGeoJSON()">Descargar GeoJSON</button>
-    <button id="descargar-excel" onclick="descargarExcel()">Descargar Excel</button>
-</div>
 
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 <script src="https://unpkg.com/papaparse/papaparse.min.js"></script>
@@ -82,7 +98,7 @@
 let js2kmzLoadedFlag = false;
 
 // Mapa de Leaflet centrado en Santiago de Chile
-const map = L.map('map').setView([-33.4311, -70.6045], 14.3); // Centrado en Santiago con zoom nivel 12
+const map = L.map('map').setView([-33.4311, -70.6045], 14.3); // Centrado en Santiago con zoom nivel 14.3
 
 // Cargar el mapa base
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
@@ -220,6 +236,9 @@ function mostrarBotonesDescarga() {
         document.getElementById('descargar-botones').style.display = 'none';
     }
 }
+
+cargarSelector();
+</script>
 
 // Función para descargar el archivo KMZ usando JSZip
 function descargarKMZ() {
