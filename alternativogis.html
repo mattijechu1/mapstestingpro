@@ -115,9 +115,9 @@ async function cargarCoberturas() {
                         for (const key in point) {
                             if (point[key] && key !== "X" && key !== "Y") {
                                 if (key === "FOTO" && point[key].startsWith("http")) {
-                                    popupContent += <img src="${point[key]}" alt="Foto asociada"><br>;
+                                    popupContent += `<img src="${point[key]}" alt="Foto asociada"><br>`;
                                 } else {
-                                    popupContent += <b>${key}:</b> ${point[key]}<br>;
+                                    popupContent += `<b>${key}:</b> ${point[key]}<br>`;
                                 }
                             }
                         }
