@@ -10,6 +10,8 @@
         #selector { margin: 10px 0; }
         img { max-width: 100%; height: auto; margin-top: 10px; border: 1px solid #ccc; }
         #cobertura-selector { margin-top: 10px; }
+        #descargar-botones { margin-top: 10px; }
+        button { margin-right: 10px; }
     </style>
 </head>
 <body>
@@ -25,9 +27,15 @@
 
 <div id="cobertura-selector">
     <label for="cobertura">Selecciona una Cobertura:</label>
-    <select id="cobertura">
+    <select id="cobertura" onchange="mostrarBotonesDescarga()">
         <!-- Las coberturas se cargarán dinámicamente según la temática -->
     </select>
+</div>
+
+<div id="descargar-botones" style="display: none;">
+    <button id="descargar-kmz">Descargar KMZ</button>
+    <button id="descargar-geojson">Descargar GeoJSON</button>
+    <button id="descargar-excel">Descargar Excel</button>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
@@ -163,10 +171,19 @@ async function cargarCoberturas() {
     });
 }
 
+// Función para mostrar los botones de descarga
+function mostrarBotonesDescarga() {
+    const selectedCobertura = document.getElementById('cobertura').value;
+    if (selectedCobertura) {
+        document.getElementById('descargar-botones').style.display = 'block';
+    } else {
+        document.getElementById('descargar-botones').style.display = 'none';
+    }
+}
+
 // Iniciar con el cargado de temáticas
 cargarSelector();
 </script>
 
 </body>
 </html>
-
