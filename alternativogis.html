@@ -43,9 +43,18 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
 
 <!-- Cargar correctamente la librería js2kmz -->
-<script src="https://cdn.jsdelivr.net/npm/js2kmz@1.0.4/js2kmz.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/js2kmz@1.0.4/js2kmz.min.js" onload="js2kmzLoaded()"></script>
 
 <script>
+// Variable para saber si js2kmz se cargó correctamente
+let js2kmzLoadedFlag = false;
+
+// Función para confirmar que js2kmz está cargado
+function js2kmzLoaded() {
+    js2kmzLoadedFlag = true;
+    console.log("js2kmz ha sido cargada correctamente.");
+}
+
 // Mapa de Leaflet centrado en Santiago de Chile
 const map = L.map('map').setView([-33.4489, -70.6693], 12); // Centrado en Santiago con zoom nivel 12
 
@@ -188,6 +197,11 @@ function mostrarBotonesDescarga() {
 
 // Función para descargar el archivo KMZ
 function descargarKMZ() {
+    if (!js2kmzLoadedFlag) {
+        alert('La librería js2kmz aún no se ha cargado correctamente. Intenta nuevamente.');
+        return;
+    }
+
     const selectedCobertura = document.getElementById('cobertura').value;
     if (!selectedCobertura) return;
 
@@ -309,16 +323,15 @@ function descargarExcel() {
         complete: function(results) {
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.json_to_sheet(results.data);
-            XLSX.utils.book_append_sheet(wb, ws, "Datos");
+            XLSX.utils.book_append_sheet(wb, ws, selectedCobertura);
             XLSX.writeFile(wb, `${selectedCobertura}.xlsx`);
         }
     });
 }
 
-// Cargar temáticas al inicio
+// Cargar el visor al inicio
 cargarSelector();
-</script>
 
+</script>
 </body>
 </html>
-
