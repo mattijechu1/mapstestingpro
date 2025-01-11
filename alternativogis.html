@@ -202,28 +202,27 @@ function descargarKMZ() {
         header: true,
         dynamicTyping: true,
         complete: function(results) {
-            const kml = `
-            <?xml version="1.0" encoding="UTF-8"?>
-            <kml xmlns="http://www.opengis.net/kml/2.2">
-                <Document>
-                    <name>${selectedCobertura}</name>
-                    ${results.data.map(point => {
-                        if (point.X && point.Y) {
-                            const properties = Object.entries(point)
-                                .filter(([key]) => key !== "X" && key !== "Y")
-                                .map(([key, value]) => `<b>${key}:</b> ${value}<br>`).join("");
-                            return `
-                            <Placemark>
-                                <name>${point.Nombre || "Punto"}</name>
-                                <description><![CDATA[${properties}]]></description>
-                                <Point>
-                                    <coordinates>${point.X},${point.Y},0</coordinates>
-                                </Point>
-                            </Placemark>`;
-                        }
-                    }).filter(Boolean).join("")}
-                </Document>
-            </kml>`;
+            const kml = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+    <Document>
+        <name>${selectedCobertura}</name>
+        ${results.data.map(point => {
+            if (point.X && point.Y) {
+                const properties = Object.entries(point)
+                    .filter(([key]) => key !== "X" && key !== "Y")
+                    .map(([key, value]) => `<b>${key}:</b> ${value}<br>`).join("");
+                return `
+                <Placemark>
+                    <name>${point.Nombre || "Punto"}</name>
+                    <description><![CDATA[${properties}]]></description>
+                    <Point>
+                        <coordinates>${point.X},${point.Y},0</coordinates>
+                    </Point>
+                </Placemark>`;
+            }
+        }).filter(Boolean).join("")}
+    </Document>
+</kml>`;
 
             const zip = new JSZip();
             zip.file(`${selectedCobertura}.kml`, kml);
