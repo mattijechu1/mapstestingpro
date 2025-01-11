@@ -6,7 +6,11 @@
     <title>Visor de Mapas Dinámico</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <style>
-        #map { height: 600px; }
+        #map { height: 600px; 
+            width: calc(100% - 220px);
+            position: absolute;
+            top: 0;
+            left: 220px;}
         #selector { margin: 10px 0; }
         img { max-width: 100%; height: auto; margin-top: 10px; border: 1px solid #ccc; }
         #cobertura-selector { margin-top: 10px; }
