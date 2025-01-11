@@ -57,7 +57,7 @@ async function cargarDatosCSV() {
 let tematicas = {};
 let layerControl = L.control.layers().addTo(map);
 let coberturaLayers = {};
-let activeLayer = null;  // Para almacenar la capa activa
+let capaActiva = null;  // Para almacenar la capa activa
 let activeCoberturaName = ""; // Para almacenar el nombre de la cobertura activa
 
 // Obtener datos y organizar las temáticas
@@ -111,7 +111,7 @@ async function cargarCoberturas() {
     layerControl = L.control.layers().addTo(map);
 
     const selectedTematica = tematicas[tematica];
-    activeLayer = null;
+    capaActiva = null;
     activeCoberturaName = "";
 
     selectedTematica.coberturas.forEach(cobertura => {
