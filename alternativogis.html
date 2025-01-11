@@ -34,7 +34,7 @@
 
 <div id="descargar-botones" style="display: none;">
     <button id="descargar-kmz">Descargar KMZ</button>
-    <button id="descargar-geojson">Descargar GeoJSON</button>
+    <button id="descargar-geojson" onclick="descargarGeoJSON()">Descargar GeoJSON</button>
     <button id="descargar-excel">Descargar Excel</button>
 </div>
 
@@ -179,6 +179,50 @@ function mostrarBotonesDescarga() {
     } else {
         document.getElementById('descargar-botones').style.display = 'none';
     }
+}
+
+// Función para descargar el archivo GeoJSON
+function descargarGeoJSON() {
+    const selectedCobertura = document.getElementById('cobertura').value;
+    if (!selectedCobertura) return;
+
+    const selectedTematica = document.getElementById('tematica').value;
+    const cobertura = tematicas[selectedTematica].coberturas.find(c => c.nombre === selectedCobertura);
+    
+    if (!cobertura) return;
+
+    Papa.parse(cobertura.url, {
+        download: true,
+        header: true,
+        dynamicTyping: true,
+        complete: function(results) {
+            // Convertir los puntos a formato GeoJSON
+            const geojson = {
+                type: "FeatureCollection",
+                features: results.data.map(point => {
+                    if (point.X && point.Y) {
+                        return {
+                            type: "Feature",
+                            geometry: {
+                                type: "Point",
+                                coordinates: [point.X, point.Y]
+                            },
+                            properties: point
+                        };
+                    }
+                }).filter(Boolean)
+            };
+
+            // Crear un archivo GeoJSON descargable
+            const blob = new Blob([JSON.stringify(geojson)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `${selectedCobertura}.geojson`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    });
 }
 
 // Iniciar con el cargado de temáticas
