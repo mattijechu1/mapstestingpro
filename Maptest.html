@@ -143,6 +143,9 @@ async function cargarSelector() {
     await obtenerTematicas();
     const tematicaSelect = document.getElementById('tematica');
 
+    // Limpiar las opciones previas
+    tematicaSelect.innerHTML = '';
+
     Object.keys(tematicas).forEach(tematica => {
         const option = document.createElement('option');
         option.value = tematica;
@@ -155,6 +158,7 @@ async function cargarSelector() {
         cargarCoberturas();
     }
 }
+
 
 // Función para cargar coberturas
 async function cargarCoberturas() {
