@@ -160,6 +160,9 @@ async function cargarSelector() {
 }
 
 
+// Crear una variable para llevar un registro de las coberturas ya añadidas al layer control
+let capasAgregadas = new Set();
+
 // Función para cargar coberturas
 async function cargarCoberturas() {
     const tematicaSelect = document.getElementById('tematica');
@@ -177,13 +180,14 @@ async function cargarCoberturas() {
 
     // Llenar el selector de coberturas
     selectedTematica.coberturas.forEach(cobertura => {
-        const option = document.createElement('option');
-        option.value = cobertura.nombre;
-        option.textContent = cobertura.nombre;
-        coberturaSelect.appendChild(option);
+        // Comprobar si la cobertura ya fue agregada al layerControl
+        if (!capasAgregadas.has(cobertura.nombre)) {
+            // Si no está, agregarla
+            const option = document.createElement('option');
+            option.value = cobertura.nombre;
+            option.textContent = cobertura.nombre;
+            coberturaSelect.appendChild(option);
 
-        // Verificar si la capa ya existe antes de agregarla
-        if (!coberturaLayers[cobertura.nombre]) {
             Papa.parse(cobertura.url, {
                 download: true,
                 header: true,
@@ -213,17 +217,21 @@ async function cargarCoberturas() {
                                 fillColor: "blue",
                                 fillOpacity: 0.5
                             })
-                            .bindPopup(popupContent) // Asociar popup al círculo
-                            .addTo(coverageLayer);
+                                .bindPopup(popupContent) // Asociar popup al círculo
+                                .addTo(coverageLayer);
                         }
                     });
 
-                    coberturaLayers[cobertura.nombre] = coverageLayer;
-                    layerControl.addOverlay(coverageLayer, cobertura.nombre);
+                    // Agregar la capa al control solo si no ha sido añadida
+                    if (!capasAgregadas.has(cobertura.nombre)) {
+                        coberturaLayers[cobertura.nombre] = coverageLayer;
+                        layerControl.addOverlay(coverageLayer, cobertura.nombre);
+                        capasAgregadas.add(cobertura.nombre); // Marcar como agregada
 
-                    // Activar la capa por defecto
-                    if (cobertura.porDefecto) {
-                        coverageLayer.addTo(map);
+                        // Activar la capa por defecto
+                        if (cobertura.porDefecto) {
+                            coverageLayer.addTo(map);
+                        }
                     }
                 }
             });
