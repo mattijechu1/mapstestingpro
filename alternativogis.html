@@ -41,19 +41,11 @@
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 <script src="https://unpkg.com/papaparse/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
-
-<!-- Cargar correctamente la librería js2kmz -->
-<script src="https://cdn.jsdelivr.net/npm/js2kmz@1.0.4/js2kmz.min.js" onload="js2kmzLoaded()"></script>
+<script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
 
 <script>
 // Variable para saber si js2kmz se cargó correctamente
 let js2kmzLoadedFlag = false;
-
-// Función para confirmar que js2kmz está cargado
-function js2kmzLoaded() {
-    js2kmzLoadedFlag = true;
-    console.log("js2kmz ha sido cargada correctamente.");
-}
 
 // Mapa de Leaflet centrado en Santiago de Chile
 const map = L.map('map').setView([-33.4489, -70.6693], 12); // Centrado en Santiago con zoom nivel 12
@@ -195,19 +187,14 @@ function mostrarBotonesDescarga() {
     }
 }
 
-// Función para descargar el archivo KMZ
+// Función para descargar el archivo KMZ usando JSZip
 function descargarKMZ() {
-    if (!js2kmzLoadedFlag) {
-        alert('La librería js2kmz aún no se ha cargado correctamente. Intenta nuevamente.');
-        return;
-    }
-
     const selectedCobertura = document.getElementById('cobertura').value;
     if (!selectedCobertura) return;
 
     const selectedTematica = document.getElementById('tematica').value;
     const cobertura = tematicas[selectedTematica].coberturas.find(c => c.nombre === selectedCobertura);
-    
+
     if (!cobertura) return;
 
     Papa.parse(cobertura.url, {
@@ -215,43 +202,35 @@ function descargarKMZ() {
         header: true,
         dynamicTyping: true,
         complete: function(results) {
-            const kmlFeatures = results.data.map(point => {
+            // Crear KML
+            let kmlContent = '<?xml version="1.0" encoding="UTF-8"?>';
+            kmlContent += '<kml xmlns="http://www.opengis.net/kml/2.2"><Document>';
+
+            results.data.forEach(point => {
                 if (point.X && point.Y) {
-                    const latLng = [point.Y, point.X];
-                    let description = "";
-                    for (const key in point) {
-                        if (point[key] && key !== "X" && key !== "Y") {
-                            description += `<b>${key}:</b> ${point[key]}<br>`;
-                        }
-                    }
-
-                    return {
-                        type: "Feature",
-                        geometry: {
-                            type: "Point",
-                            coordinates: [point.X, point.Y]
-                        },
-                        properties: {
-                            name: point.ID,
-                            description: description
-                        }
-                    };
+                    kmlContent += '<Placemark>';
+                    kmlContent += `<name>${point.ID}</name>`;
+                    kmlContent += `<description>${JSON.stringify(point)}</description>`;
+                    kmlContent += `<Point><coordinates>${point.X},${point.Y}</coordinates></Point>`;
+                    kmlContent += '</Placemark>';
                 }
-            }).filter(Boolean);
+            });
 
-            const kml = {
-                type: "FeatureCollection",
-                features: kmlFeatures
-            };
+            kmlContent += '</Document></kml>';
 
-            // Convertir a KMZ y permitir la descarga
-            const kmzBlob = js2kmz(kml);
-            const url = URL.createObjectURL(kmzBlob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `${selectedCobertura}.kmz`;
-            a.click();
-            URL.revokeObjectURL(url);
+            // Crear archivo KMZ (comprimir en ZIP)
+            const zip = new JSZip();
+            zip.file("doc.kml", kmlContent);
+
+            // Generar el archivo KMZ y permitir la descarga
+            zip.generateAsync({ type: "blob" }).then(function(content) {
+                const a = document.createElement("a");
+                const url = URL.createObjectURL(content);
+                a.href = url;
+                a.download = `${selectedCobertura}.kmz`;
+                a.click();
+                URL.revokeObjectURL(url);
+            });
         }
     });
 }
@@ -263,7 +242,7 @@ function descargarGeoJSON() {
 
     const selectedTematica = document.getElementById('tematica').value;
     const cobertura = tematicas[selectedTematica].coberturas.find(c => c.nombre === selectedCobertura);
-    
+
     if (!cobertura) return;
 
     Papa.parse(cobertura.url, {
@@ -313,7 +292,7 @@ function descargarExcel() {
 
     const selectedTematica = document.getElementById('tematica').value;
     const cobertura = tematicas[selectedTematica].coberturas.find(c => c.nombre === selectedCobertura);
-    
+
     if (!cobertura) return;
 
     Papa.parse(cobertura.url, {
@@ -331,7 +310,6 @@ function descargarExcel() {
 
 // Cargar el visor al inicio
 cargarSelector();
-
 </script>
 </body>
 </html>
