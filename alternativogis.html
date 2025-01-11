@@ -197,7 +197,7 @@ async function downloadKMZ() {
 <kml xmlns="http://www.opengis.net/kml/2.2">
 <Document>
     <name>${escapeXML(activeCoberturaName)}</name>
-    ${activeLayer
+    ${capaActiva
         .map((feature) => {
             const properties = feature.properties || {};
             const coordinates = feature.geometry?.coordinates || [];
@@ -250,7 +250,7 @@ function downloadGeoJSON() {
 
     const geojsonData = {
         type: "FeatureCollection",
-        features: activeLayer
+        features: capaActiva
     };
 
     const geojsonBlob = new Blob([JSON.stringify(geojsonData)], { type: "application/geo+json" });
@@ -268,7 +268,7 @@ function downloadExcel() {
     }
 
     // Convertir el JSON de la capa activa en un formato adecuado para Excel
-    const excelData = activeLayer.map(feature => {
+    const excelData = !capaActiva.map(feature => {
         return feature.properties;  // Obtener solo las propiedades para el Excel
     });
 
