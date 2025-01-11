@@ -6,48 +6,46 @@
     <title>Visor de Mapas Dinámico</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <style>
-        #map { height: 92vh;
+        #map { 
+            height: 92vh;
             width: 85%;
+            position: absolute;
             left: 220px;
             top: -2px;
         }
-        #selector {
-            position: relative; /* O absolute si quieres fuera del flujo */
-    top: 150px; /* Mueve hacia abajo 10px */
-    left: 0; /* Opcional para mover lateralmente */
-    display: inline-block;
-    text-align: center;
-    padding: 10px 20px;
-    background-color: #007BFF;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-         }
-        img { max-width: 100%; height: auto; margin-top: 10px; border: 1px solid #ccc; }
-        #cobertura-selector {position: absolute; /* O absolute si quieres fuera del flujo */
-    top: 400px; /* Mueve hacia abajo 10px */
-    left: 10; /* Opcional para mover lateralmente */
-    display: inline-block;
-    text-align: center;
-    padding: 10px 20px;
-    background-color: #007BFF;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-         }
-        #descargar-botones { margin-top: 10px; 
+        
+        /* Estilo para el contenedor de los selectores */
+        #selector, #cobertura-selector {
+            position: relative; 
+            margin-bottom: 20px; /* Espaciado entre los elementos */
+            display: block;
+        }
+
+        /* Estilo para el botón y selector */
+        #selector select, #cobertura-selector select {
+            margin-top: 10px;
+            padding: 5px 10px;
+            width: 100%; /* Ajusta el ancho al contenedor */
+        }
+
+        #selector label, #cobertura-selector label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        /* Estilo adicional para el botón de descarga */
+        #descargar-botones button {
             display: inline-block;
-            text-align: center; 
-            padding: 10px 20px; 
-            background-color: #007BFF; 
-            color: white; 
-            border: none; 
-            border-radius: 5px; 
-            cursor: pointer;  
-         }
-        button { margin-right: 10px; }
+            margin-right: 10px;
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -62,7 +60,7 @@
 <div id="map"></div>
 
 <div id="cobertura-selector">
-    <label for="cobertura">Descagar cobertura:  </label>
+    <label for="cobertura">Descargar cobertura:</label>
     <select id="cobertura" onchange="mostrarBotonesDescarga()">
         <!-- Las coberturas se cargarán dinámicamente según la temática -->
     </select>
