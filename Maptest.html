@@ -169,9 +169,6 @@ async function cargarCoberturas() {
     Object.values(coberturaLayers).forEach(layer => map.removeLayer(layer));
     coberturaLayers = {};
 
-    layerControl.remove();
-    layerControl = L.control.layers().addTo(map);
-
     // Limpiar el menú de coberturas
     const coberturaSelect = document.getElementById('cobertura');
     coberturaSelect.innerHTML = ''; // Limpiar opciones previas
@@ -185,49 +182,52 @@ async function cargarCoberturas() {
         option.textContent = cobertura.nombre;
         coberturaSelect.appendChild(option);
 
-        Papa.parse(cobertura.url, {
-            download: true,
-            header: true,
-            dynamicTyping: true,
-            complete: function(results) {
-                const coverageLayer = L.layerGroup();
+        // Verificar si la capa ya existe antes de agregarla
+        if (!coberturaLayers[cobertura.nombre]) {
+            Papa.parse(cobertura.url, {
+                download: true,
+                header: true,
+                dynamicTyping: true,
+                complete: function(results) {
+                    const coverageLayer = L.layerGroup();
 
-                results.data.forEach(point => {
-                    if (point.X && point.Y) {
-                        const latLng = [point.Y, point.X];
+                    results.data.forEach(point => {
+                        if (point.X && point.Y) {
+                            const latLng = [point.Y, point.X];
 
-                        // Crear contenido del popup dinámicamente
-                       let popupContent = "<b>Detalles:</b><br>";
-for (const key in point) {
-    if (point[key] && key !== "X" && key !== "Y") {
-        if (key === "FOTO" && point[key].startsWith("http")) {
-            popupContent += `<img src="${point[key]}" alt="Foto asociada" style="width: 100%; height: auto;"><br>`;
-        } else {
-            popupContent += `<b>${key}:</b> ${point[key]}<br>`;
-        }
-    }
-}
+                            // Crear contenido del popup dinámicamente
+                            let popupContent = "<b>Detalles:</b><br>";
+                            for (const key in point) {
+                                if (point[key] && key !== "X" && key !== "Y") {
+                                    if (key === "FOTO" && point[key].startsWith("http")) {
+                                        popupContent += `<img src="${point[key]}" alt="Foto asociada" style="width: 100%; height: auto;"><br>`;
+                                    } else {
+                                        popupContent += `<b>${key}:</b> ${point[key]}<br>`;
+                                    }
+                                }
+                            }
 
-L.circleMarker(latLng, {
-    radius: 5,
-    color: "blue",
-    fillColor: "blue",
-    fillOpacity: 0.5
-                        })
-                        .bindPopup(popupContent) // Asociar popup al círculo
-                        .addTo(coverageLayer);
+                            L.circleMarker(latLng, {
+                                radius: 5,
+                                color: "blue",
+                                fillColor: "blue",
+                                fillOpacity: 0.5
+                            })
+                            .bindPopup(popupContent) // Asociar popup al círculo
+                            .addTo(coverageLayer);
+                        }
+                    });
+
+                    coberturaLayers[cobertura.nombre] = coverageLayer;
+                    layerControl.addOverlay(coverageLayer, cobertura.nombre);
+
+                    // Activar la capa por defecto
+                    if (cobertura.porDefecto) {
+                        coverageLayer.addTo(map);
                     }
-                });
-
-                coberturaLayers[cobertura.nombre] = coverageLayer;
-                layerControl.addOverlay(coverageLayer, cobertura.nombre);
-
-                // Activar la capa por defecto
-                if (cobertura.porDefecto) {
-                    coverageLayer.addTo(map);
                 }
-            }
-        });
+            });
+        }
     });
 }
 
