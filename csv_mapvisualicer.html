@@ -31,9 +31,29 @@
             const reader = new FileReader();
             reader.onload = function(event) {
                 const csv = event.target.result;
-                const geojsonString = csv.split('\n')[1];  // Assuming the GeoJSON is in the second line
-                const geojson = JSON.parse(geojsonString);
-                
+                const lines = csv.split('\n').map(line => line.trim()).filter(line => line !== '');
+
+                // Asumiendo que el CSV tiene las coordenadas en las columnas Latitud, Longitud
+                const coordinates = lines.map(line => {
+                    const parts = line.split(','); // separando por coma
+                    const latitude = parseFloat(parts[1]);
+                    const longitude = parseFloat(parts[0]);
+                    return [longitude, latitude]; // GeoJSON usa [longitud, latitud]
+                });
+
+                // Crear el objeto GeoJSON de tipo Polígono
+                const geojson = {
+                    "type": "FeatureCollection",
+                    "features": [{
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "Polygon",
+                            "coordinates": [coordinates]
+                        },
+                        "properties": {}
+                    }]
+                };
+
                 // Mostrar el GeoJSON en el área de texto
                 document.getElementById('geojsonOutput').value = JSON.stringify(geojson, null, 2);
 
@@ -60,3 +80,4 @@
 
 </body>
 </html>
+
