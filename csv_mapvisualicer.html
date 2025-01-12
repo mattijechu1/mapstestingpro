@@ -3,27 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa Leaflet con GeoJSON</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <title>CSV to GeoJSON Converter</title>
     <style>
-        #map { height: 600px; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        input, button {
+            margin-top: 10px;
+            padding: 5px 10px;
+        }
     </style>
 </head>
 <body>
+    <h2>CSV to GeoJSON Converter</h2>
 
-    <h1>Subir y Visualizar GeoJSON en el Mapa</h1>
-
+    <h3>Convert CSV to GeoJSON</h3>
     <input type="file" id="csvFile" accept=".csv" />
-    <button onclick="convertCSVToGeoJSON()">Convertir CSV a GeoJSON</button>
+    <button onclick="convertCSVToGeoJSON()">Convert to GeoJSON</button>
+    <br><br>
+    <textarea id="geojsonOutput" rows="10" cols="50" placeholder="Converted GeoJSON will appear here..."></textarea>
+    <br><br>
+    <button onclick="downloadGeoJSON()">Download GeoJSON</button>
 
-    <h3>GeoJSON Output:</h3>
-    <textarea id="geojsonOutput" rows="10" cols="50"></textarea>
-
-    <div id="map"></div>
-
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
-        // Función para convertir el archivo CSV a GeoJSON
+        // Convert CSV to GeoJSON
         function convertCSVToGeoJSON() {
             const fileInput = document.getElementById('csvFile');
             if (!fileInput.files.length) return;
@@ -31,54 +35,22 @@
             const reader = new FileReader();
             reader.onload = function(event) {
                 const csv = event.target.result;
-                const lines = csv.split('\n').map(line => line.trim()).filter(line => line !== '');
-
-                // Asumiendo que el CSV tiene las coordenadas en las columnas Latitud, Longitud
-                const coordinates = lines.map(line => {
-                    const parts = line.split(','); // separando por coma
-                    const longitude = parseFloat(parts[0].trim()); // Longitud
-                    const latitude = parseFloat(parts[1].trim());  // Latitud
-                    return [longitude, latitude]; // GeoJSON usa [longitud, latitud]
-                });
-
-                // Crear el objeto GeoJSON de tipo Polígono
-                const geojson = {
-                    "type": "FeatureCollection",
-                    "features": [{
-                        "type": "Feature",
-                        "geometry": {
-                            "type": "Polygon",
-                            "coordinates": [coordinates]
-                        },
-                        "properties": {
-                            "Nombre": "Hola"  // Ejemplo de propiedad
-                        }
-                    }]
-                };
-
-                // Mostrar el GeoJSON en el área de texto
+                const geojsonString = csv.split('\n')[1];  // Assuming the GeoJSON is in the second line
+                const geojson = JSON.parse(geojsonString);
                 document.getElementById('geojsonOutput').value = JSON.stringify(geojson, null, 2);
-
-                // Llamar a la función para visualizar el GeoJSON en el mapa
-                displayGeoJSONOnMap(geojson);
             };
             reader.readAsText(fileInput.files[0]);
         }
 
-        // Función para visualizar el GeoJSON en el mapa
-        function displayGeoJSONOnMap(geojson) {
-            // Crear el mapa centrado en una ubicación por defecto
-            const map = L.map('map').setView([0, 0], 2);
-
-            // Cargar los tiles de OpenStreetMap
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
-
-            // Añadir el GeoJSON al mapa
-            L.geoJSON(geojson).addTo(map);
+        // Download GeoJSON
+        function downloadGeoJSON() {
+            const geojson = document.getElementById('geojsonOutput').value;
+            const blob = new Blob([geojson], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'converted.geojson';
+            link.click();
         }
     </script>
-
 </body>
 </html>
