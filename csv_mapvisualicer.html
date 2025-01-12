@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CSV to GeoJSON Converter</title>
+    <title>CSV to GeoJSON Converter and Visualizer</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -13,10 +13,17 @@
             margin-top: 10px;
             padding: 5px 10px;
         }
+        #map {
+            width: 100%;
+            height: 400px;
+            margin-top: 20px;
+        }
     </style>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 </head>
 <body>
-    <h2>CSV to GeoJSON Converter</h2>
+    <h2>CSV to GeoJSON Converter and Visualizer</h2>
 
     <h3>Convert CSV to GeoJSON</h3>
     <input type="file" id="csvFile" accept=".csv" />
@@ -25,7 +32,11 @@
     <textarea id="geojsonOutput" rows="10" cols="50" placeholder="Converted GeoJSON will appear here..."></textarea>
     <br><br>
     <button onclick="downloadGeoJSON()">Download GeoJSON</button>
+    <button onclick="visualizeGeoJSON()">Visualize GeoJSON</button>
 
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
         // Convert CSV to GeoJSON
         function convertCSVToGeoJSON() {
@@ -50,6 +61,25 @@
             link.href = URL.createObjectURL(blob);
             link.download = 'converted.geojson';
             link.click();
+        }
+
+        // Visualize GeoJSON on a Leaflet map
+        function visualizeGeoJSON() {
+            const geojsonText = document.getElementById('geojsonOutput').value;
+            if (!geojsonText) return;
+
+            const geojson = JSON.parse(geojsonText);
+            
+            // Initialize the map
+            const map = L.map('map').setView([0, 0], 2);  // Default to world view
+
+            // Add a tile layer to the map
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            // Add the GeoJSON layer to the map
+            L.geoJSON(geojson).addTo(map);
         }
     </script>
 </body>
