@@ -3,81 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa Leaflet con GeoJSON</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <title>CSV to Polygon with Leaflet</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <style>
-        #map { height: 600px; }
+        #map {
+            height: 400px;
+            width: 100%;
+        }
+        input, button {
+            margin-top: 10px;
+            padding: 5px 10px;
+        }
     </style>
 </head>
 <body>
 
-    <h1>Subir y Visualizar GeoJSON en el Mapa</h1>
-
+    <h2>CSV to Polygon Visualization on Leaflet Map</h2>
     <input type="file" id="csvFile" accept=".csv" />
-    <button onclick="convertCSVToGeoJSON()">Convertir CSV a GeoJSON</button>
-
-    <h3>GeoJSON Output:</h3>
-    <textarea id="geojsonOutput" rows="10" cols="50"></textarea>
+    <button onclick="convertCSVToPolygon()">Load CSV to Map</button>
 
     <div id="map"></div>
 
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script>
-        // Función para convertir el archivo CSV a GeoJSON
-        function convertCSVToGeoJSON() {
+        // Create the map centered on Providencia (Santiago, Chile)
+        var map = L.map('map').setView([-33.4489, -70.6516], 13);  // Coordinates for Providencia, Santiago, Chile
+
+        // Add a tile layer (OpenStreetMap)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Function to convert CSV to Polygon and plot on the map
+        function convertCSVToPolygon() {
             const fileInput = document.getElementById('csvFile');
             if (!fileInput.files.length) return;
 
             const reader = new FileReader();
             reader.onload = function(event) {
                 const csv = event.target.result;
-                const lines = csv.split('\n').map(line => line.trim()).filter(line => line !== '');
+                const rows = csv.split('\n');
+                const coordinates = [];
 
-                // Asumiendo que el CSV tiene las coordenadas en las columnas Latitud, Longitud
-                const coordinates = lines.map(line => {
-                    const parts = line.split(','); // separando por coma
-                    const latitude = parseFloat(parts[1]);
-                    const longitude = parseFloat(parts[0]);
-                    return [longitude, latitude]; // GeoJSON usa [longitud, latitud]
-                });
+                // Iterate through CSV rows (skip header row)
+                for (let i = 1; i < rows.length; i++) {
+                    const cols = rows[i].split(',');
 
-                // Crear el objeto GeoJSON de tipo Polígono
+                    // Assuming the CSV has latitude in the first column and longitude in the second column
+                    const lat = parseFloat(cols[0]);
+                    const lon = parseFloat(cols[1]);
+
+                    // Check if lat/lon values are valid
+                    if (!isNaN(lat) && !isNaN(lon)) {
+                        coordinates.push([lat, lon]); // Add coordinates as an array
+                    }
+                }
+
+                // Convert the coordinates to GeoJSON format
                 const geojson = {
-                    "type": "FeatureCollection",
-                    "features": [{
-                        "type": "Feature",
-                        "geometry": {
-                            "type": "Polygon",
-                            "coordinates": [coordinates]
+                    type: 'FeatureCollection',
+                    features: [{
+                        type: 'Feature',
+                        geometry: {
+                            type: 'Polygon',
+                            coordinates: [coordinates]
                         },
-                        "properties": {}
+                        properties: {}
                     }]
                 };
 
-                // Mostrar el GeoJSON en el área de texto
-                document.getElementById('geojsonOutput').value = JSON.stringify(geojson, null, 2);
-
-                // Llamar a la función para visualizar el GeoJSON en el mapa
-                displayGeoJSONOnMap(geojson);
+                // Create and add the polygon to the map
+                if (coordinates.length > 2) { // Ensure there's more than 2 points to form a polygon
+                    L.geoJSON(geojson).addTo(map);
+                    map.fitBounds(L.geoJSON(geojson).getBounds()); // Adjust the map to fit the polygon
+                } else {
+                    alert('Not enough points to create a polygon.');
+                }
             };
+
             reader.readAsText(fileInput.files[0]);
         }
-
-        // Función para visualizar el GeoJSON en el mapa
-        function displayGeoJSONOnMap(geojson) {
-            // Crear el mapa centrado en una ubicación por defecto
-            const map = L.map('map').setView([0, 0], 2);
-
-            // Cargar los tiles de OpenStreetMap
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
-
-            // Añadir el GeoJSON al mapa
-            L.geoJSON(geojson).addTo(map);
-        }
     </script>
-
 </body>
 </html>
-
