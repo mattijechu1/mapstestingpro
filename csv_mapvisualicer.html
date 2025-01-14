@@ -45,7 +45,7 @@
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
         const map = L.map('map').setView([-33.4312, -70.6422], 13);  // Providencia, Santiago
-        let capaControl = L.control.layers().addTo(map); // Control de capas
+        const capaControl = L.control.layers().addTo(map); // Control de capas
 
         async function cargarDatosCSV() {
             const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSdP1qaEycsJwlw5wzGQmf_OskbKogiIkdLv3nXo1y7WubCP7dRf7KzVrpZOxPjkzqUXudKkUdnQafE/pub?gid=1082644547&single=true&output=csv";
@@ -79,9 +79,11 @@
             const datos = await cargarDatosCSV();
             const coberturas = datos.filter(item => item.Temática === tematicaSeleccionada);
 
-            const capaCoberturas = {};
+            // Limpiar las coberturas previas
+            capaControl.clearLayers();
+
             coberturas.forEach(cobertura => {
-                if (cobertura.Activo === "Sí") {
+                if (cobertura.Activo === "Si") {
                     const geojsonUrl = cobertura.URL;
                     fetch(geojsonUrl)
                         .then(response => response.json())
@@ -98,9 +100,9 @@
                                 }
                             }).addTo(map);
 
-                            capaCoberturas[cobertura.Cobertura] = capa;
                             capaControl.addBaseLayer(capa, cobertura.Cobertura);
-                        });
+                        })
+                        .catch(error => console.error('Error al cargar GeoJSON:', error));
                 }
             });
         }
