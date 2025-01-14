@@ -13,130 +13,37 @@
             margin-top: 10px;
             padding: 5px 10px;
         }
-        #map { 
+        #map {
             height: 731px; 
             width: calc(100% - 220px);
             position: absolute;
             top: 0;
             left: 220px;
         }
-        #selector { margin: 10px 0; }
-        img { max-width: 100%; height: auto; margin-top: 10px; border: 1px solid #ccc; }
-        #cobertura-selector { margin-top: 10px; }
-        #descargar-botones { margin-top: 10px; }
-        button { display: block; width: 12%; padding: 10px; margin-bottom: 10px; background-color: #007BFF; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px;}
     </style>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <script src="https://unpkg.com/papaparse/papaparse.min.js"></script>
 </head>
 <body>
     <h2>CSV to GeoJSON Converter and Visualizer</h2>
 
-    <div id="barra-busqueda" style="width: 12%; margin: 10px 0;">
-        <label for="direccion" style="display: block; margin-bottom: 5px; font-weight: bold;">Buscar por dirección:</label>
-        <input type="text" id="direccion" placeholder="Calle Número, Providencia, Santiago" style="width: 100%; padding: 10px; margin-bottom: 10px;" />
-        <button onclick="buscarDireccion()" style="width: 100%; padding: 10px; background-color: #007BFF; color: white; border: none; border-radius: 5px; cursor: pointer;">Buscar</button>
-    </div>
-
-    <div id="selector">
-        <label for="tematica">Seleccionar cobertura:</label> <br>
-        <select id="tematica" onchange="cargarCoberturas()">
-            <!-- Las temáticas se cargarán dinámicamente -->
-        </select>
-    </div>
-
-    <div>
-        <label for="fileInput">Seleccionar archivo CSV:</label>
-        <input type="file" id="fileInput" onchange="handleFileSelect(event)">
-    </div>
+    <h3>Convert CSV to GeoJSON</h3>
+    <input type="file" id="csvFile" accept=".csv" onchange="handleFileSelect(event)" />
+    <br><br>
 
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
-        // Inicializar el mapa y establecer la vista en Providencia, Santiago
+        // Initialize the map and set the view to Providencia, Santiago (lat, lon)
         const map = L.map('map').setView([-33.4312, -70.6422], 13);  // Providencia, Santiago
 
-        // Capa base para el mapa
+        // Add a tile layer to the map
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        // Crear un contenedor para las coberturas
-        let capasCobertura = {};
-
-        // Control de capas
-        const capaControl = L.control.layers().addTo(map);
-
-        // Cargar los datos CSV de Google Sheets
-        async function cargarDatosCSV() {
-            const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSdP1qaEycsJwlw5wzGQmf_OskbKogiIkdLv3nXo1y7WubCP7dRf7KzVrpZOxPjkzqUXudKkUdnQafE/pub?gid=1082644547&single=true&output=csv";
-            const response = await fetch(csvUrl);
-            const text = await response.text();
-            return Papa.parse(text, { header: true, dynamicTyping: true }).data;
-        }
-
-        // Cargar las temáticas en el selector
-        async function cargarTematicas() {
-            const datos = await cargarDatosCSV();
-            const select = document.getElementById("tematica");
-            select.innerHTML = ''; // Limpiar el selector
-
-            const tematicas = Array.from(new Set(datos.map(item => item.Temática)));
-            tematicas.forEach(tematica => {
-                const option = document.createElement("option");
-                option.value = tematica;
-                option.textContent = tematica;
-                select.appendChild(option);
-            });
-        }
-
-        // Cargar las coberturas al seleccionar una temática
-        async function cargarCoberturas() {
-            const select = document.getElementById("tematica");
-            const tematicaSeleccionada = select.value;
-
-            if (!tematicaSeleccionada) return;
-
-            const datos = await cargarDatosCSV();
-            const coberturas = datos.filter(item => item.Temática === tematicaSeleccionada);
-
-            // Limpiar las capas previas
-            for (let capa in capasCobertura) {
-                map.removeLayer(capasCobertura[capa]);
-            }
-            capasCobertura = {}; // Limpiar el objeto que contiene las capas
-
-            // Añadir las coberturas
-            coberturas.forEach(cobertura => {
-                if (cobertura.Activo === "Si") {
-                    const geojsonUrl = cobertura.URL;
-                    fetch(geojsonUrl)
-                        .then(response => response.json())
-                        .then(geojson => {
-                            const capa = L.geoJSON(geojson, {
-                                onEachFeature: function (feature, layer) {
-                                    let popupContent = '';
-                                    for (const key in feature.properties) {
-                                        if (feature.properties.hasOwnProperty(key)) {
-                                            popupContent += `${key}: ${feature.properties[key]}<br>`;
-                                        }
-                                    }
-                                    layer.bindPopup(popupContent);
-                                }
-                            }).addTo(map);
-
-                            // Guardar la capa para permitir encender y apagar
-                            capasCobertura[cobertura.Cobertura] = capa;
-                            capaControl.addOverlay(capa, cobertura.Cobertura);  // Añadir la capa al control
-                        })
-                        .catch(error => console.error('Error al cargar GeoJSON:', error));
-                }
-            });
-        }
-
-        // Manejo de archivo CSV y conversión a GeoJSON
+        // Handle file selection and process the CSV
         function handleFileSelect(event) {
             const fileInput = event.target;
             if (!fileInput.files.length) return;
@@ -144,32 +51,25 @@
             const reader = new FileReader();
             reader.onload = function(event) {
                 const csv = event.target.result;
-                const geojsonString = csv.split('\n')[1];  // Suponiendo que el GeoJSON está en la segunda línea
+                const geojsonString = csv.split('\n')[1];  // Assuming the GeoJSON is in the second line
                 const geojson = JSON.parse(geojsonString);
 
-                // Visualizar el GeoJSON directamente después de la conversión
+                // Visualize the GeoJSON directly after conversion
                 L.geoJSON(geojson, {
                     onEachFeature: function (feature, layer) {
+                        // Format the properties for the popup
                         let popupContent = '';
                         for (const key in feature.properties) {
                             if (feature.properties.hasOwnProperty(key)) {
                                 popupContent += `${key}: ${feature.properties[key]}<br>`;
                             }
                         }
-                        layer.bindPopup(popupContent);  // Vincular el popup con la información formateada
+                        layer.bindPopup(popupContent);  // Bind the formatted popup
                     }
                 }).addTo(map);
             };
             reader.readAsText(fileInput.files[0]);
         }
-
-        // Inicialización de la página
-        cargarTematicas();
-
-        // Corregir el tamaño del mapa cuando se cargue
-        window.addEventListener('load', () => {
-            map.invalidateSize();  // Recalcular el tamaño del mapa
-        });
     </script>
 </body>
 </html>
