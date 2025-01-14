@@ -65,22 +65,28 @@
 
         // Visualize GeoJSON on a Leaflet map
         function visualizeGeoJSON() {
-            const geojsonText = document.getElementById('geojsonOutput').value;
-            if (!geojsonText) return;
+        const geojsonText = document.getElementById('geojsonOutput').value;
+        if (!geojsonText) return;
 
-            const geojson = JSON.parse(geojsonText);
-            
-            // Initialize the map
-            const map = L.map('map').setView([0, 0], 2);  // Default to world view
+        const geojson = JSON.parse(geojsonText);
 
-            // Add a tile layer to the map
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
+        // Initialize the map
+        const map = L.map('map').setView([0, 0], 2);  // Default to world view
 
-            // Add the GeoJSON layer to the map
-            L.geoJSON(geojson).addTo(map);
-        }
+        // Add a tile layer to the map
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Add the GeoJSON layer to the map with popup
+        L.geoJSON(geojson, {
+            onEachFeature: function (feature, layer) {
+                // Check if the feature has a property to display in the popup
+                const popupContent = feature.properties ? JSON.stringify(feature.properties, null, 2) : "No properties available";
+                layer.bindPopup(popupContent);  // Bind the popup with the properties
+            }
+        }).addTo(map);
+    }
     </script>
 </body>
 </html>
