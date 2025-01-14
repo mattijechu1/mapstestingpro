@@ -44,9 +44,21 @@
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
+        // Inicializar el mapa y establecer la vista en Providencia, Santiago
         const map = L.map('map').setView([-33.4312, -70.6422], 13);  // Providencia, Santiago
-        const capaControl = L.control.layers().addTo(map); // Control de capas
 
+        // Capa base para el mapa
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Crear un contenedor para las coberturas
+        let capasCobertura = {};
+
+        // Control de capas
+        const capaControl = L.control.layers().addTo(map);
+
+        // Cargar los datos CSV de Google Sheets
         async function cargarDatosCSV() {
             const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSdP1qaEycsJwlw5wzGQmf_OskbKogiIkdLv3nXo1y7WubCP7dRf7KzVrpZOxPjkzqUXudKkUdnQafE/pub?gid=1082644547&single=true&output=csv";
             const response = await fetch(csvUrl);
@@ -79,9 +91,13 @@
             const datos = await cargarDatosCSV();
             const coberturas = datos.filter(item => item.Temática === tematicaSeleccionada);
 
-            // Limpiar las coberturas previas
-            capaControl.clearLayers();
+            // Limpiar las capas previas
+            for (let capa in capasCobertura) {
+                map.removeLayer(capasCobertura[capa]);
+            }
+            capasCobertura = {}; // Limpiar el objeto que contiene las capas
 
+            // Añadir las coberturas
             coberturas.forEach(cobertura => {
                 if (cobertura.Activo === "Si") {
                     const geojsonUrl = cobertura.URL;
@@ -100,7 +116,9 @@
                                 }
                             }).addTo(map);
 
-                            capaControl.addBaseLayer(capa, cobertura.Cobertura);
+                            // Guardar la capa para permitir encender y apagar
+                            capasCobertura[cobertura.Cobertura] = capa;
+                            capaControl.addOverlay(capa, cobertura.Cobertura);  // Añadir la capa al control
                         })
                         .catch(error => console.error('Error al cargar GeoJSON:', error));
                 }
