@@ -9,10 +9,6 @@
             font-family: Arial, sans-serif;
             margin: 20px;
         }
-        input, button {
-            margin-top: 10px;
-            padding: 5px 10px;
-        }
         #map {
             height: 731px; 
             width: calc(100% - 220px);
@@ -27,13 +23,10 @@
 <body>
     <h2>CSV to GeoJSON Converter and Visualizer</h2>
 
-    <h3>Convert CSV to GeoJSON</h3>
-    <input type="file" id="csvFile" accept=".csv" onchange="handleFileSelect(event)" />
-    <br><br>
-
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/papaparse/papaparse.min.js"></script>
     <script>
         // Initialize the map and set the view to Providencia, Santiago (lat, lon)
         const map = L.map('map').setView([-33.4312, -70.6422], 13);  // Providencia, Santiago
@@ -43,33 +36,49 @@
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        // Handle file selection and process the CSV
-        function handleFileSelect(event) {
-            const fileInput = event.target;
-            if (!fileInput.files.length) return;
-
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                const csv = event.target.result;
-                const geojsonString = csv.split('\n')[1];  // Assuming the GeoJSON is in the second line
-                const geojson = JSON.parse(geojsonString);
-
-                // Visualize the GeoJSON directly after conversion
-                L.geoJSON(geojson, {
-                    onEachFeature: function (feature, layer) {
-                        // Format the properties for the popup
-                        let popupContent = '';
-                        for (const key in feature.properties) {
-                            if (feature.properties.hasOwnProperty(key)) {
-                                popupContent += `${key}: ${feature.properties[key]}<br>`;
-                            }
-                        }
-                        layer.bindPopup(popupContent);  // Bind the formatted popup
-                    }
-                }).addTo(map);
-            };
-            reader.readAsText(fileInput.files[0]);
+        // Function to load data from the Google Sheets CSV
+        async function cargarDatosCSV() {
+            const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSfYXFj_cgPWgKelFJws9YhsBXnmg--Nd9v1nFhFBgVguEsbuPVLx84ES-nKA_6wy-IV9SvNSZxIyHM/pub?gid=1646276239&single=true&output=csv";
+            const response = await fetch(csvUrl);
+            const text = await response.text();
+            return Papa.parse(text, { header: true, dynamicTyping: true }).data;
         }
+
+        // Handle CSV processing and visualize GeoJSON
+        async function cargarCoberturas() {
+            const datos = await cargarDatosCSV();
+            
+            // Iterate over data and load GeoJSON
+            datos.forEach(item => {
+                const geojsonUrl = item.URL;
+                if (geojsonUrl) {
+                    fetch(geojsonUrl)
+                        .then(response => response.json())
+                        .then(geojson => {
+                            L.geoJSON(geojson, {
+                                onEachFeature: function (feature, layer) {
+                                    let popupContent = '';
+                                    for (const key in feature.properties) {
+                                        if (feature.properties.hasOwnProperty(key)) {
+                                            popupContent += `${key}: ${feature.properties[key]}<br>`;
+                                        }
+                                    }
+                                    layer.bindPopup(popupContent);  // Bind the formatted popup
+                                }
+                            }).addTo(map);
+                        })
+                        .catch(error => console.error('Error al cargar GeoJSON:', error));
+                }
+            });
+        }
+
+        // Load the coverage data on page load
+        cargarCoberturas();
+
+        // Recalculate map size on window load
+        window.addEventListener('load', () => {
+            map.invalidateSize();  // Recalculate the map size
+        });
     </script>
 </body>
 </html>
