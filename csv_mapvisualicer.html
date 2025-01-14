@@ -47,14 +47,16 @@
         // Handle CSV processing and visualize GeoJSON
         async function cargarCoberturas() {
             const datos = await cargarDatosCSV();
-            
+
             // Iterate over data and load GeoJSON
             datos.forEach(item => {
-                const geojsonUrl = item.URL;
+                const geojsonUrl = item.URL;  // GeoJSON URL from the CSV
                 if (geojsonUrl) {
+                    // Fetch GeoJSON file and add it to the map
                     fetch(geojsonUrl)
                         .then(response => response.json())
                         .then(geojson => {
+                            // Add the GeoJSON data as a new layer on the map
                             L.geoJSON(geojson, {
                                 onEachFeature: function (feature, layer) {
                                     let popupContent = '';
