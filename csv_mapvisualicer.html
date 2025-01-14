@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Excel a poligono</title>
+    <title>CSV to GeoJSON Converter and Visualizer</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -26,14 +26,11 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 </head>
 <body>
-    <h2>Visualizador poligonal de Excel</h2>
+    <h2>CSV to GeoJSON Converter and Visualizer</h2>
 
-    <h3>De excel a poligono</h3>
-    <input type="file" id="csvFile" accept=".csv" />
-    <button onclick="convertCSVToGeoJSON()">Convertir a GeoJSON</button>
+    <h3>Convert CSV to GeoJSON</h3>
+    <input type="file" id="csvFile" accept=".csv" onchange="handleFileSelect(event)" />
     <br><br>
-    <!-- El área de texto se ha ocultado -->
-    <textarea id="geojsonOutput" rows="10" cols="50" placeholder="Converted GeoJSON will appear here..."></textarea>
 
     <div id="map"></div>
 
@@ -47,9 +44,9 @@
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        // Convert CSV to GeoJSON and visualize it
-        function convertCSVToGeoJSON() {
-            const fileInput = document.getElementById('csvFile');
+        // Handle file selection and process the CSV
+        function handleFileSelect(event) {
+            const fileInput = event.target;
             if (!fileInput.files.length) return;
 
             const reader = new FileReader();
@@ -57,7 +54,6 @@
                 const csv = event.target.result;
                 const geojsonString = csv.split('\n')[1];  // Assuming the GeoJSON is in the second line
                 const geojson = JSON.parse(geojsonString);
-                document.getElementById('geojsonOutput').value = JSON.stringify(geojson, null, 2);
 
                 // Visualize the GeoJSON directly after conversion
                 L.geoJSON(geojson, {
