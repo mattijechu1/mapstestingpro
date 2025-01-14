@@ -44,29 +44,42 @@
             return Papa.parse(text, { header: true, dynamicTyping: true }).data;
         }
 
-        // Function to load the GeoJSON from CSV content (second row, A2)
+        // Function to load the GeoJSON from the second row
         async function cargarCoberturas() {
             const datos = await cargarDatosCSV();
-            const geojsonString = datos[1].A;  // Get the content from the second row, column A
+            console.log("CSV Data:", datos);  // Ver el contenido del CSV
 
-            if (geojsonString) {
-                // Parse the GeoJSON content
-                const geojson = JSON.parse(geojsonString);
+            // Check if the second row exists
+            if (datos.length > 1) {
+                const fila2 = datos[1];  // Get the second row (index 1)
 
-                // Add the GeoJSON data as a new layer on the map
-                L.geoJSON(geojson, {
-                    onEachFeature: function (feature, layer) {
-                        let popupContent = '';
-                        for (const key in feature.properties) {
-                            if (feature.properties.hasOwnProperty(key)) {
-                                popupContent += `${key}: ${feature.properties[key]}<br>`;
-                            }
+                // Loop through the columns of the second row to find any GeoJSON data
+                for (const key in fila2) {
+                    const geojsonString = fila2[key];
+                    if (geojsonString) {
+                        try {
+                            // Parse the GeoJSON content
+                            const geojson = JSON.parse(geojsonString);
+
+                            // Add the GeoJSON data as a new layer on the map
+                            L.geoJSON(geojson, {
+                                onEachFeature: function (feature, layer) {
+                                    let popupContent = '';
+                                    for (const key in feature.properties) {
+                                        if (feature.properties.hasOwnProperty(key)) {
+                                            popupContent += `${key}: ${feature.properties[key]}<br>`;
+                                        }
+                                    }
+                                    layer.bindPopup(popupContent);  // Bind the formatted popup
+                                }
+                            }).addTo(map);
+                        } catch (error) {
+                            console.error("Error parsing GeoJSON in column", key, ":", error);
                         }
-                        layer.bindPopup(popupContent);  // Bind the formatted popup
                     }
-                }).addTo(map);
+                }
             } else {
-                console.error("No GeoJSON data found in the CSV.");
+                console.error("No data found in the second row.");
             }
         }
 
