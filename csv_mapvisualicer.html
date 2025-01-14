@@ -81,7 +81,7 @@
 
             const capaCoberturas = {};
             coberturas.forEach(cobertura => {
-                if (cobertura.Activo === "Si") {
+                if (cobertura.Activo === "Sí") {
                     const geojsonUrl = cobertura.URL;
                     fetch(geojsonUrl)
                         .then(response => response.json())
