@@ -3,136 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thematic Layer Selector</title>
+    <title>CSV to GeoJSON Visualizer</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
+            margin: 20px;
             display: flex;
         }
-        #menu {
-            width: 220px;
-            padding: 10px;
-            background: #f4f4f4;
-            border-right: 1px solid #ddd;
+        #sidebar {
+            width: 200px;
+            margin-right: 20px;
         }
         #map {
-            flex: 1;
-            height: 100vh;
-        }
-        select {
-            width: 100%;
-            margin-bottom: 10px;
-            padding: 5px;
+            flex-grow: 1;
+            height: 731px;
         }
     </style>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 </head>
 <body>
-    <div id="menu">
-        <h2>Temáticas</h2>
-        <select id="thematicSelector"></select>
+    <div id="sidebar">
+        <h3>Temáticas</h3>
+        <select id="tematicaSelector" onchange="cargarCoberturas()">
+            <option value="">Seleccione una temática</option>
+        </select>
     </div>
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script>
-        const thematicSelector = document.getElementById('thematicSelector');
         const map = L.map('map').setView([-33.4312, -70.6422], 13);
-        const layerControl = L.control.layers().addTo(map);
 
-        // Add base layer
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        // URL of thematic data CSV
         const thematicCsvUrl = "https://docs.google.com/spreadsheets/d/1wXxDx_bVRiCqbW67DdD5e_487gNA_DjhMA3z7XT0m10/pub?gid=1082644547&single=true&output=csv";
+        const thematicData = {};
+        const layerControl = L.control.layers().addTo(map);
 
-        let thematicData = {};
+        async function cargarTematicas() {
+            try {
+                const response = await fetch(thematicCsvUrl);
+                const text = await response.text();
+                const data = Papa.parse(text, { header: true }).data;
 
-        async function loadThematicData() {
-            const response = await fetch(thematicCsvUrl);
-            const text = await response.text();
-            const parsedData = Papa.parse(text, { header: true }).data;
+                const tematicaSelector = document.getElementById('tematicaSelector');
+                tematicaSelector.innerHTML = '<option value="">Seleccione una temática</option>';
 
-            // Process data into thematic structure
-            parsedData.forEach(row => {
-                const { ID, Temática, Cobertura, "Activo por defecto": activo, URL } = row;
-
-                if (!thematicData[Temática]) {
-                    thematicData[Temática] = [];
-                }
-
-                thematicData[Temática].push({
-                    cobertura: Cobertura,
-                    activo: activo.trim().toLowerCase() === 'sí',
-                    url: URL
+                data.forEach(row => {
+                    if (row.ID && row.Temática && row.Cobertura && row.URL) {
+                        if (!thematicData[row.Temática]) {
+                            thematicData[row.Temática] = [];
+                            const option = document.createElement('option');
+                            option.value = row.Temática;
+                            option.textContent = row.Temática;
+                            tematicaSelector.appendChild(option);
+                        }
+                        thematicData[row.Temática].push(row);
+                    }
                 });
-            });
-
-            populateThematicSelector();
-        }
-
-        function populateThematicSelector() {
-            thematicSelector.innerHTML = '';
-
-            Object.keys(thematicData).forEach(thematic => {
-                const option = document.createElement('option');
-                option.value = thematic;
-                option.textContent = thematic;
-                thematicSelector.appendChild(option);
-            });
-
-            // Load first thematic by default
-            if (thematicSelector.options.length > 0) {
-                loadCoverageLayers(thematicSelector.value);
+            } catch (error) {
+                console.error("Error al cargar las temáticas:", error);
             }
         }
 
-        async function loadCoverageLayers(thematic) {
-            layerControl.clearLayers();
+        async function cargarCoberturas() {
+            const tematica = document.getElementById('tematicaSelector').value;
+            if (!tematica || !thematicData[tematica]) return;
 
-            const coverages = thematicData[thematic];
-            for (const coverage of coverages) {
+            // Limpiar capas existentes en el mapa
+            layerControl.remove();
+            layerControl.addTo(map);
+
+            for (const cobertura of thematicData[tematica]) {
                 try {
-                    const response = await fetch(coverage.url);
+                    const response = await fetch(cobertura.URL);
                     const text = await response.text();
                     const data = Papa.parse(text, { header: false }).data;
-
-                    const geojsonString = data[1][0]; // A2: GeoJSON string
+                    const geojsonString = data[1][0];
                     const geojson = JSON.parse(geojsonString);
 
                     const layer = L.geoJSON(geojson, {
-                        onEachFeature: (feature, layer) => {
+                        onEachFeature: function (feature, layer) {
                             let popupContent = '';
                             for (const key in feature.properties) {
-                                if (feature.properties.hasOwnProperty(key)) {
-                                    popupContent += `${key}: ${feature.properties[key]}<br>`;
-                                }
+                                popupContent += `${key}: ${feature.properties[key]}<br>`;
                             }
                             layer.bindPopup(popupContent);
                         }
                     });
 
-                    layerControl.addOverlay(layer, coverage.cobertura);
-
-                    if (coverage.activo) {
+                    if (cobertura['Activo por defecto'] === 'Sí') {
                         layer.addTo(map);
                     }
+
+                    layerControl.addOverlay(layer, cobertura.Cobertura);
                 } catch (error) {
-                    console.error(`Error loading coverage ${coverage.cobertura}:`, error);
+                    console.error(`Error al cargar la cobertura ${cobertura.Cobertura}:`, error);
                 }
             }
         }
 
-        thematicSelector.addEventListener('change', (event) => {
-            loadCoverageLayers(event.target.value);
-        });
-
-        loadThematicData();
+        cargarTematicas();
     </script>
 </body>
 </html>
