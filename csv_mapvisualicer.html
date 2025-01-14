@@ -18,6 +18,9 @@
             height: 400px;
             margin-top: 20px;
         }
+        #geojsonOutput {
+            display: none;  /* Ocultar el área donde se ve el GeoJSON */
+        }
     </style>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
@@ -29,9 +32,9 @@
     <input type="file" id="csvFile" accept=".csv" />
     <button onclick="convertCSVToGeoJSON()">Convert to GeoJSON</button>
     <br><br>
+    <!-- El área de texto se ha ocultado -->
     <textarea id="geojsonOutput" rows="10" cols="50" placeholder="Converted GeoJSON will appear here..."></textarea>
     <br><br>
-    <button onclick="downloadGeoJSON()">Download GeoJSON</button>
     <button onclick="visualizeGeoJSON()">Visualize GeoJSON</button>
 
     <div id="map"></div>
@@ -53,50 +56,40 @@
             reader.readAsText(fileInput.files[0]);
         }
 
-        // Download GeoJSON
-        function downloadGeoJSON() {
-            const geojson = document.getElementById('geojsonOutput').value;
-            const blob = new Blob([geojson], { type: 'application/json' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'converted.geojson';
-            link.click();
-        }
-
         // Visualize GeoJSON on a Leaflet map
-          function visualizeGeoJSON() {
-        const geojsonText = document.getElementById('geojsonOutput').value;
-        if (!geojsonText) return;
+        function visualizeGeoJSON() {
+            const geojsonText = document.getElementById('geojsonOutput').value;
+            if (!geojsonText) return;
 
-        const geojson = JSON.parse(geojsonText);
+            const geojson = JSON.parse(geojsonText);
 
-        // Initialize the map
-        const map = L.map('map').setView([0, 0], 2);  // Default to world view
+            // Initialize the map
+            const map = L.map('map').setView([0, 0], 2);  // Default to world view
 
-        // Add a tile layer to the map
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
+            // Add a tile layer to the map
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
 
-        // Add the GeoJSON layer to the map with formatted popup
-        L.geoJSON(geojson, {
-            onEachFeature: function (feature, layer) {
-                // Check if the feature has properties
-                if (feature.properties) {
-                    // Format the properties for the popup
-                    let popupContent = '';
-                    for (const key in feature.properties) {
-                        if (feature.properties.hasOwnProperty(key)) {
-                            popupContent += `${key}: ${feature.properties[key]}<br>`;
+            // Add the GeoJSON layer to the map with formatted popup
+            L.geoJSON(geojson, {
+                onEachFeature: function (feature, layer) {
+                    // Check if the feature has properties
+                    if (feature.properties) {
+                        // Format the properties for the popup
+                        let popupContent = '';
+                        for (const key in feature.properties) {
+                            if (feature.properties.hasOwnProperty(key)) {
+                                popupContent += `${key}: ${feature.properties[key]}<br>`;
+                            }
                         }
+                        layer.bindPopup(popupContent);  // Bind the formatted popup
+                    } else {
+                        layer.bindPopup("No properties available");
                     }
-                    layer.bindPopup(popupContent);  // Bind the formatted popup
-                } else {
-                    layer.bindPopup("No properties available");
                 }
-            }
-        }).addTo(map);
-    }
+            }).addTo(map);
+        }
     </script>
 </body>
 </html>
