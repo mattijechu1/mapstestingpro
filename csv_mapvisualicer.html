@@ -21,10 +21,21 @@
             left: 220px;
         }
         #selector { margin: 10px 0; }
-        img { max-width: 100%; height: auto; margin-top: 10px; border: 1px solid #ccc; }
-        #cobertura-selector { margin-top: 10px; }
-        #descargar-botones { margin-top: 10px; }
-        button { display: block; width: 12%; padding: 10px; margin-bottom: 10px; background-color: #007BFF; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px;}
+        #barra-busqueda {
+            width: 12%; 
+            margin: 10px 0;
+        }
+        button { 
+            display: block; 
+            width: 12%; 
+            padding: 10px; 
+            margin-bottom: 10px; 
+            background-color: #007BFF; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+        }
     </style>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
@@ -33,19 +44,22 @@
 <body>
     <h2>CSV to GeoJSON Converter and Visualizer</h2>
 
-    <div id="barra-busqueda" style="width: 12%; margin: 10px 0;">
+    <!-- Barra de búsqueda -->
+    <div id="barra-busqueda">
         <label for="direccion" style="display: block; margin-bottom: 5px; font-weight: bold;">Buscar por dirección:</label>
         <input type="text" id="direccion" placeholder="Calle Número, Providencia, Santiago" style="width: 100%; padding: 10px; margin-bottom: 10px;" />
-        <button onclick="buscarDireccion()" style="width: 100%; padding: 10px; background-color: #007BFF; color: white; border: none; border-radius: 5px; cursor: pointer;">Buscar</button>
+        <button onclick="buscarDireccion()">Buscar</button>
     </div>
 
+    <!-- Selector de temáticas -->
     <div id="selector">
-        <label for="tematica">Seleccionar cobertura:</label> <br>
+        <label for="tematica">Seleccionar cobertura:</label>
         <select id="tematica" onchange="cargarCoberturas()">
             <!-- Las temáticas se cargarán dinámicamente -->
         </select>
     </div>
 
+    <!-- Mapa -->
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -58,13 +72,10 @@
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        // Crear un contenedor para las coberturas
-        let capasCobertura = {};
-
-        // Control de capas
+        // Crear un control de capas vacío
         const capaControl = L.control.layers().addTo(map);
 
-        // Cargar los datos CSV de Google Sheets
+        // Función para cargar los datos del CSV de Google Sheets
         async function cargarDatosCSV() {
             const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSdP1qaEycsJwlw5wzGQmf_OskbKogiIkdLv3nXo1y7WubCP7dRf7KzVrpZOxPjkzqUXudKkUdnQafE/pub?gid=1082644547&single=true&output=csv";
             const response = await fetch(csvUrl);
@@ -76,8 +87,9 @@
         async function cargarTematicas() {
             const datos = await cargarDatosCSV();
             const select = document.getElementById("tematica");
-            select.innerHTML = ''; // Limpiar el selector
+            select.innerHTML = '';  // Limpiar el selector
 
+            // Obtener las temáticas únicas
             const tematicas = Array.from(new Set(datos.map(item => item.Temática)));
             tematicas.forEach(tematica => {
                 const option = document.createElement("option");
@@ -87,23 +99,21 @@
             });
         }
 
-        // Cargar las coberturas al seleccionar una temática
+        // Cargar las coberturas para la temática seleccionada
         async function cargarCoberturas() {
             const select = document.getElementById("tematica");
             const tematicaSeleccionada = select.value;
 
-            if (!tematicaSeleccionada) return;
+            if (!tematicaSeleccionada) return;  // Si no se ha seleccionado una temática, no hacer nada
 
+            // Obtener las coberturas asociadas a la temática seleccionada
             const datos = await cargarDatosCSV();
             const coberturas = datos.filter(item => item.Temática === tematicaSeleccionada);
 
-            // Limpiar las capas previas
-            for (let capa in capasCobertura) {
-                map.removeLayer(capasCobertura[capa]);
-            }
-            capasCobertura = {}; // Limpiar el objeto que contiene las capas
+            // Limpiar las coberturas previas
+            capaControl._layers = {};  // Eliminar todas las capas del control
 
-            // Añadir las coberturas
+            // Añadir las coberturas al mapa
             coberturas.forEach(cobertura => {
                 if (cobertura.Activo === "Si") {
                     const geojsonUrl = cobertura.URL;
@@ -118,20 +128,19 @@
                                             popupContent += `${key}: ${feature.properties[key]}<br>`;
                                         }
                                     }
-                                    layer.bindPopup(popupContent);
+                                    layer.bindPopup(popupContent);  // Añadir un popup a cada capa
                                 }
                             }).addTo(map);
 
-                            // Guardar la capa para permitir encender y apagar
-                            capasCobertura[cobertura.Cobertura] = capa;
-                            capaControl.addOverlay(capa, cobertura.Cobertura);  // Añadir la capa al control
+                            // Añadir la capa al control de capas
+                            capaControl.addOverlay(capa, cobertura.Cobertura);
                         })
                         .catch(error => console.error('Error al cargar GeoJSON:', error));
                 }
             });
         }
 
-        // Inicialización de la página
+        // Inicializar la carga de temáticas al cargar la página
         cargarTematicas();
 
         // Corregir el tamaño del mapa cuando se cargue
@@ -141,4 +150,3 @@
     </script>
 </body>
 </html>
-
