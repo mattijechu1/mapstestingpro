@@ -29,9 +29,23 @@
     </style>
 </head>
 <body>
+    
+  <div id="barra-busqueda" style="width: 12%; margin: 10px 0;">
+    <label for="direccion" style="display: block; margin-bottom: 5px; font-weight: bold;">Buscar por dirección:</label>
+    <input 
+        type="text" 
+        id="direccion" 
+        placeholder="Calle Número, Providencia, Santiago" 
+        style="width: 100%; padding: 10px; margin-bottom: 10px;"
+    />
+    <button onclick="buscarDireccion()" 
+        style="width: 100%; padding: 10px; background-color: #007BFF; color: white; border: none; border-radius: 5px; cursor: pointer;">
+        Buscar
+    </button>
+</div>
 
 <div id="selector">
-    <label for="tematica">Selecciona una Temática:</label> <br>
+    <label for="tematica">Selecciona temática:</label> <br>
     <select id="tematica" onchange="cargarCoberturas()">
         <!-- Las temáticas se cargarán dinámicamente -->
     </select>
@@ -40,7 +54,7 @@
 <div id="map"></div>
 
 <div id="cobertura-selector">
-    <label for="cobertura">Selecciona una Cobertura:</label> <br>
+    <label for="cobertura">Descarga de información:</label> <br>
     <select id="cobertura" onchange="mostrarBotonesDescarga()">
         <!-- Las coberturas se cargarán dinámicamente según la temática -->
     </select>
@@ -169,7 +183,7 @@ async function cargarCoberturas() {
                         }
 
                         L.circleMarker(latLng, {
-                            radius: 5,
+                            radius: 6,
                             color: "blue",
                             fillColor: "blue",
                             fillOpacity: 0.5
@@ -323,6 +337,45 @@ function descargarExcel() {
             XLSX.writeFile(wb, `${selectedCobertura}.xlsx`);
         }
     });
+}
+
+// Variable para almacenar el marcador de búsqueda actual
+let marcadorBusqueda = null;
+
+// Función para buscar dirección y agregar marcador
+async function buscarDireccion() {
+    const direccion = document.getElementById('direccion').value;
+    if (!direccion) return;
+
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(direccion)}&format=json&limit=1`;
+
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.length > 0) {
+            const { lat, lon, display_name } = data[0];
+
+            // Si existe un marcador previo, eliminarlo
+            if (marcadorBusqueda) {
+                map.removeLayer(marcadorBusqueda);
+            }
+
+            // Agregar nuevo marcador
+            marcadorBusqueda = L.marker([lat, lon])
+                .addTo(map)
+                .bindPopup(`<b>Dirección:</b><br>${display_name}`)
+                .openPopup();
+
+            // Centrar el mapa en la nueva ubicación
+            map.setView([lat, lon], 16);
+        } else {
+            alert('No se encontró la dirección ingresada.');
+        }
+    } catch (error) {
+        console.error('Error al buscar la dirección:', error);
+        alert('Ocurrió un error al buscar la dirección. Inténtalo nuevamente.');
+    }
 }
 
 // Cargar el visor al inicio
