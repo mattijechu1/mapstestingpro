@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CSV to GeoJSON Converter and Visualizer</title>
+    <title>CSV to GeoJSON Visualizer</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -21,77 +21,54 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 </head>
 <body>
-    <h2>CSV to GeoJSON Converter and Visualizer</h2>
+    <h2>CSV to GeoJSON Visualizer</h2>
 
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/papaparse/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script>
-        // Initialize the map and set the view to Providencia, Santiago (lat, lon)
-        const map = L.map('map').setView([-33.4312, -70.6422], 13);  // Providencia, Santiago
+        // Inicializar el mapa y establecer la vista en Providencia, Santiago
+        const map = L.map('map').setView([-33.4312, -70.6422], 13);
 
-        // Add a tile layer to the map
+        // Capa base para el mapa
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        // Function to load data from the Google Sheets CSV
+        // URL del archivo CSV en Google Sheets
+        const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSfYXFj_cgPWgKelFJws9YhsBXnmg--Nd9v1nFhFBgVguEsbuPVLx84ES-nKA_6wy-IV9SvNSZxIyHM/pub?gid=1646276239&single=true&output=csv";
+
+        // Función para cargar y procesar datos del CSV
         async function cargarDatosCSV() {
-            const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSfYXFj_cgPWgKelFJws9YhsBXnmg--Nd9v1nFhFBgVguEsbuPVLx84ES-nKA_6wy-IV9SvNSZxIyHM/pub?gid=1646276239&single=true&output=csv";
-            const response = await fetch(csvUrl);
-            const text = await response.text();
-            return Papa.parse(text, { header: true, dynamicTyping: true }).data;
-        }
+            try {
+                const response = await fetch(csvUrl);
+                const text = await response.text();
+                const data = Papa.parse(text, { header: false }).data;
 
-        // Function to load the GeoJSON from cell A2 and log data for debugging
-        async function cargarCoberturas() {
-            const datos = await cargarDatosCSV();
-            console.log("CSV Data:", datos);  // Ver el contenido del CSV para depuración
+                // Obtener el contenido de la celda A2
+                const geojsonString = data[1][0]; // Segunda fila, primera columna
+                const geojson = JSON.parse(geojsonString);
 
-            // Check if there is data in the second row
-            if (datos.length > 1) {
-                const fila2 = datos[1];  // Get the second row (index 1)
-                console.log("Fila 2:", fila2);  // Ver el contenido de la fila 2
-
-                // Get the GeoJSON from cell A2 (the first cell of the second row)
-                const geojsonString = fila2.A;
-                if (geojsonString) {
-                    try {
-                        // Parse the GeoJSON content
-                        const geojson = JSON.parse(geojsonString);
-
-                        // Add the GeoJSON data as a new layer on the map
-                        L.geoJSON(geojson, {
-                            onEachFeature: function (feature, layer) {
-                                let popupContent = '';
-                                for (const key in feature.properties) {
-                                    if (feature.properties.hasOwnProperty(key)) {
-                                        popupContent += `${key}: ${feature.properties[key]}<br>`;
-                                    }
-                                }
-                                layer.bindPopup(popupContent);  // Bind the formatted popup
+                // Visualizar el GeoJSON en el mapa
+                L.geoJSON(geojson, {
+                    onEachFeature: function (feature, layer) {
+                        let popupContent = '';
+                        for (const key in feature.properties) {
+                            if (feature.properties.hasOwnProperty(key)) {
+                                popupContent += `${key}: ${feature.properties[key]}<br>`;
                             }
-                        }).addTo(map);
-                    } catch (error) {
-                        console.error("Error parsing GeoJSON from cell A2:", error);
+                        }
+                        layer.bindPopup(popupContent);
                     }
-                } else {
-                    console.error("No GeoJSON found in cell A2.");
-                }
-            } else {
-                console.error("No data found in the second row.");
+                }).addTo(map);
+            } catch (error) {
+                console.error("Error al cargar o procesar los datos del CSV:", error);
             }
         }
 
-        // Load the coverage data on page load
-        cargarCoberturas();
-
-        // Recalculate map size on window load
-        window.addEventListener('load', () => {
-            map.invalidateSize();  // Recalculate the map size
-        });
+        // Llamar a la función al cargar la página
+        cargarDatosCSV();
     </script>
 </body>
 </html>
-
