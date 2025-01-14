@@ -34,14 +34,20 @@
     <br><br>
     <!-- El área de texto se ha ocultado -->
     <textarea id="geojsonOutput" rows="10" cols="50" placeholder="Converted GeoJSON will appear here..."></textarea>
-    <br><br>
-    <button onclick="visualizeGeoJSON()">Visualize GeoJSON</button>
 
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
-        // Convert CSV to GeoJSON
+        // Initialize the map and set the view to Providencia, Santiago (lat, lon)
+        const map = L.map('map').setView([-33.4312, -70.6422], 13);  // Providencia, Santiago
+
+        // Add a tile layer to the map
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Convert CSV to GeoJSON and visualize it
         function convertCSVToGeoJSON() {
             const fileInput = document.getElementById('csvFile');
             if (!fileInput.files.length) return;
@@ -52,30 +58,10 @@
                 const geojsonString = csv.split('\n')[1];  // Assuming the GeoJSON is in the second line
                 const geojson = JSON.parse(geojsonString);
                 document.getElementById('geojsonOutput').value = JSON.stringify(geojson, null, 2);
-            };
-            reader.readAsText(fileInput.files[0]);
-        }
 
-        // Visualize GeoJSON on a Leaflet map
-        function visualizeGeoJSON() {
-            const geojsonText = document.getElementById('geojsonOutput').value;
-            if (!geojsonText) return;
-
-            const geojson = JSON.parse(geojsonText);
-
-            // Initialize the map
-            const map = L.map('map').setView([0, 0], 2);  // Default to world view
-
-            // Add a tile layer to the map
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
-
-            // Add the GeoJSON layer to the map with formatted popup
-            L.geoJSON(geojson, {
-                onEachFeature: function (feature, layer) {
-                    // Check if the feature has properties
-                    if (feature.properties) {
+                // Visualize the GeoJSON directly after conversion
+                L.geoJSON(geojson, {
+                    onEachFeature: function (feature, layer) {
                         // Format the properties for the popup
                         let popupContent = '';
                         for (const key in feature.properties) {
@@ -84,11 +70,10 @@
                             }
                         }
                         layer.bindPopup(popupContent);  // Bind the formatted popup
-                    } else {
-                        layer.bindPopup("No properties available");
                     }
-                }
-            }).addTo(map);
+                }).addTo(map);
+            };
+            reader.readAsText(fileInput.files[0]);
         }
     </script>
 </body>
