@@ -7,7 +7,16 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 20px;
+            box-sizing: border-box;
+            height: 100vh;
+        }
+        #controls {
+            margin-bottom: 20px;
         }
         input, button {
             margin-top: 10px;
@@ -27,9 +36,11 @@
 <body>
     <h2>CSV to GeoJSON Converter and Visualizer</h2>
 
-    <h3>Convert CSV to GeoJSON</h3>
-    <input type="file" id="csvFile" accept=".csv" onchange="handleFileSelect(event)" />
-    <br><br>
+    <div id="controls">
+        <h3>Convert CSV to GeoJSON</h3>
+        <input type="file" id="csvFile" accept=".csv" onchange="handleFileSelect(event)" />
+        <br><br>
+    </div>
 
     <div id="map"></div>
 
