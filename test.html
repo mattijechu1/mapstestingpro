@@ -3,330 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visor de Mapas Dinámico</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <title>Thematic Layer Selector</title>
     <style>
-        #map { height: 731px; 
-            width: calc(100% - 220px);
-            position: absolute;
-            top: 0;
-            left: 220px;}
-        #selector { margin: 10px 0; }
-        img { max-width: 100%; height: auto; margin-top: 10px; border: 1px solid #ccc; }
-        #cobertura-selector { margin-top: 10px; }
-        #descargar-botones { margin-top: 10px; }
-        button { display: block;
-            width: 12%;
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+        }
+        #menu {
+            width: 220px;
             padding: 10px;
+            background: #f4f4f4;
+            border-right: 1px solid #ddd;
+        }
+        #map {
+            flex: 1;
+            height: 100vh;
+        }
+        select {
+            width: 100%;
             margin-bottom: 10px;
-            background-color: #007BFF;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-right: 10px;}
-        
+            padding: 5px;
+        }
     </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 </head>
 <body>
+    <div id="menu">
+        <h2>Temáticas</h2>
+        <select id="thematicSelector"></select>
+    </div>
+    <div id="map"></div>
 
-<div id="selector">
-    <label for="tematica">Selecciona una Temática:</label> <br>
-    <select id="tematica" onchange="cargarCoberturas()">
-        <!-- Las temáticas se cargarán dinámicamente -->
-    </select>
-</div>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script>
+        const thematicSelector = document.getElementById('thematicSelector');
+        const map = L.map('map').setView([-33.4312, -70.6422], 13);
+        const layerControl = L.control.layers().addTo(map);
 
-<div id="map"></div>
+        // Add base layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
 
-<div id="cobertura-selector">
-    <label for="cobertura">Selecciona una Cobertura:</label> <br>
-    <select id="cobertura" onchange="mostrarBotonesDescarga()">
-        <!-- Las coberturas se cargarán dinámicamente según la temática -->
-    </select>
-</div>
+        // URL of thematic data CSV
+        const thematicCsvUrl = "https://docs.google.com/spreadsheets/d/1wXxDx_bVRiCqbW67DdD5e_487gNA_DjhMA3z7XT0m10/pub?gid=1082644547&single=true&output=csv";
 
-<div id="descargar-botones" style="display: none;">
-    <button id="descargar-kmz" onclick="descargarKMZ()">Descargar KMZ</button> <br>
-    <button id="descargar-geojson" onclick="descargarGeoJSON()">Descargar GeoJSON</button> <br>
-    <button id="descargar-excel" onclick="descargarExcel()">Descargar Excel</button> <br>
-</div>
+        let thematicData = {};
 
-<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-<script src="https://unpkg.com/papaparse/papaparse.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
-<script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
+        async function loadThematicData() {
+            const response = await fetch(thematicCsvUrl);
+            const text = await response.text();
+            const parsedData = Papa.parse(text, { header: true }).data;
 
-<script>
-// Variable para saber si js2kmz se cargó correctamente
-let js2kmzLoadedFlag = false;
+            // Process data into thematic structure
+            parsedData.forEach(row => {
+                const { ID, Temática, Cobertura, "Activo por defecto": activo, URL } = row;
 
-// Mapa de Leaflet centrado en Santiago de Chile
-const map = L.map('map').setView([-33.4311, -70.6045], 14.3); // Centrado en Santiago con zoom nivel 12
+                if (!thematicData[Temática]) {
+                    thematicData[Temática] = [];
+                }
 
-// Cargar el mapa base
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+                thematicData[Temática].push({
+                    cobertura: Cobertura,
+                    activo: activo.trim().toLowerCase() === 'sí',
+                    url: URL
+                });
+            });
 
-// URL de Google Sheets en formato CSV
-const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQTRULBpYlPIfLrNuL-SZ6Zf1kIdBJYF8HKdBLIpMAw69vUNQFRNmEMt_tE3Eq3Ag/pub?gid=389153198&single=true&output=csv";
-
-// Cargar los datos desde el archivo CSV de Google Sheets
-async function cargarDatosCSV() {
-    const response = await fetch(csvUrl);
-    const text = await response.text();
-    return Papa.parse(text, { header: true, dynamicTyping: true }).data;
-}
-
-// Variables globales
-let tematicas = {};
-let layerControl = L.control.layers().addTo(map);
-let coberturaLayers = {};
-
-// Obtener datos y organizar las temáticas
-async function obtenerTematicas() {
-    const rows = await cargarDatosCSV();
-    tematicas = {};
-
-    rows.forEach(row => {
-        const { ID, Temática, Cobertura, 'Activo por defecto': activoPorDefecto, URL } = row;
-
-        if (!tematicas[Temática]) {
-            tematicas[Temática] = { id: ID, coberturas: [] };
+            populateThematicSelector();
         }
 
-        tematicas[Temática].coberturas.push({
-            nombre: Cobertura,
-            url: URL,
-            porDefecto: activoPorDefecto === 'Sí'
-        });
-    });
-}
+        function populateThematicSelector() {
+            thematicSelector.innerHTML = '';
 
-// Llenar el selector de temáticas
-async function cargarSelector() {
-    await obtenerTematicas();
-    const tematicaSelect = document.getElementById('tematica');
+            Object.keys(thematicData).forEach(thematic => {
+                const option = document.createElement('option');
+                option.value = thematic;
+                option.textContent = thematic;
+                thematicSelector.appendChild(option);
+            });
 
-    Object.keys(tematicas).forEach(tematica => {
-        const option = document.createElement('option');
-        option.value = tematica;
-        option.textContent = tematica;
-        tematicaSelect.appendChild(option);
-    });
+            // Load first thematic by default
+            if (thematicSelector.options.length > 0) {
+                loadCoverageLayers(thematicSelector.value);
+            }
+        }
 
-    // Cargar las coberturas de la primera temática por defecto
-    if (tematicaSelect.value) {
-        cargarCoberturas();
-    }
-}
+        async function loadCoverageLayers(thematic) {
+            layerControl.clearLayers();
 
-// Función para cargar coberturas
-async function cargarCoberturas() {
-    const tematicaSelect = document.getElementById('tematica');
-    const tematica = tematicaSelect.value;
+            const coverages = thematicData[thematic];
+            for (const coverage of coverages) {
+                try {
+                    const response = await fetch(coverage.url);
+                    const text = await response.text();
+                    const data = Papa.parse(text, { header: false }).data;
 
-    // Limpiar capas previas
-    Object.values(coberturaLayers).forEach(layer => map.removeLayer(layer));
-    coberturaLayers = {};
+                    const geojsonString = data[1][0]; // A2: GeoJSON string
+                    const geojson = JSON.parse(geojsonString);
 
-    layerControl.remove();
-    layerControl = L.control.layers().addTo(map);
-
-    // Limpiar el menú de coberturas
-    const coberturaSelect = document.getElementById('cobertura');
-    coberturaSelect.innerHTML = ''; // Limpiar opciones previas
-
-    const selectedTematica = tematicas[tematica];
-
-    // Llenar el selector de coberturas
-    selectedTematica.coberturas.forEach(cobertura => {
-        const option = document.createElement('option');
-        option.value = cobertura.nombre;
-        option.textContent = cobertura.nombre;
-        coberturaSelect.appendChild(option);
-
-        Papa.parse(cobertura.url, {
-            download: true,
-            header: true,
-            dynamicTyping: true,
-            complete: function(results) {
-                const coverageLayer = L.layerGroup();
-
-                results.data.forEach(point => {
-                    if (point.X && point.Y) {
-                        const latLng = [point.Y, point.X];
-
-                        // Crear contenido del popup dinámicamente
-                        let popupContent = "<b>Detalles:</b><br>";
-                        for (const key in point) {
-                            if (point[key] && key !== "X" && key !== "Y") {
-                                if (key === "FOTO" && point[key].startsWith("http")) {
-                                    popupContent += `<img src="${point[key]}" alt="Foto asociada"><br>`;
-                                } else {
-                                    popupContent += `<b>${key}:</b> ${point[key]}<br>`;
+                    const layer = L.geoJSON(geojson, {
+                        onEachFeature: (feature, layer) => {
+                            let popupContent = '';
+                            for (const key in feature.properties) {
+                                if (feature.properties.hasOwnProperty(key)) {
+                                    popupContent += `${key}: ${feature.properties[key]}<br>`;
                                 }
                             }
+                            layer.bindPopup(popupContent);
                         }
+                    });
 
-                        L.circleMarker(latLng, {
-                            radius: 5,
-                            color: "blue",
-                            fillColor: "blue",
-                            fillOpacity: 0.5
-                        })
-                        .bindPopup(popupContent) // Asociar popup al círculo
-                        .addTo(coverageLayer);
+                    layerControl.addOverlay(layer, coverage.cobertura);
+
+                    if (coverage.activo) {
+                        layer.addTo(map);
                     }
-                });
-
-                coberturaLayers[cobertura.nombre] = coverageLayer;
-                layerControl.addOverlay(coverageLayer, cobertura.nombre);
-
-                // Activar la capa por defecto
-                if (cobertura.porDefecto) {
-                    coverageLayer.addTo(map);
+                } catch (error) {
+                    console.error(`Error loading coverage ${coverage.cobertura}:`, error);
                 }
             }
+        }
+
+        thematicSelector.addEventListener('change', (event) => {
+            loadCoverageLayers(event.target.value);
         });
-    });
-}
 
-// Función para mostrar los botones de descarga
-function mostrarBotonesDescarga() {
-    const selectedCobertura = document.getElementById('cobertura').value;
-    if (selectedCobertura) {
-        document.getElementById('descargar-botones').style.display = 'block';
-    } else {
-        document.getElementById('descargar-botones').style.display = 'none';
-    }
-}
-
-// Función para descargar el archivo KMZ usando JSZip
-function descargarKMZ() {
-    const selectedCobertura = document.getElementById('cobertura').value;
-    if (!selectedCobertura) return;
-
-    const selectedTematica = document.getElementById('tematica').value;
-    const cobertura = tematicas[selectedTematica].coberturas.find(c => c.nombre === selectedCobertura);
-
-    if (!cobertura) return;
-
-    Papa.parse(cobertura.url, {
-        download: true,
-        header: true,
-        dynamicTyping: true,
-        complete: function(results) {
-            const kml = `<?xml version="1.0" encoding="UTF-8"?>
-<kml xmlns="http://www.opengis.net/kml/2.2">
-    <Document>
-        <name>${selectedCobertura}</name>
-        ${results.data.map(point => {
-            if (point.X && point.Y) {
-                const properties = Object.entries(point)
-                    .filter(([key]) => key !== "X" && key !== "Y")
-                    .map(([key, value]) => `<b>${key}:</b> ${value}<br>`).join("");
-                return `
-                <Placemark>
-                    <name>${point.Nombre || "Punto"}</name>
-                    <description><![CDATA[${properties}]]></description>
-                    <Point>
-                        <coordinates>${point.X},${point.Y},0</coordinates>
-                    </Point>
-                </Placemark>`;
-            }
-        }).filter(Boolean).join("")}
-    </Document>
-</kml>`;
-
-            const zip = new JSZip();
-            zip.file(`${selectedCobertura}.kml`, kml);
-            zip.generateAsync({ type: "blob" }).then(content => {
-                const url = URL.createObjectURL(content);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `${selectedCobertura}.kmz`;
-                a.click();
-                URL.revokeObjectURL(url);
-            });
-        }
-    });
-}
-
-// Función para descargar el archivo GeoJSON
-function descargarGeoJSON() {
-    const selectedCobertura = document.getElementById('cobertura').value;
-    if (!selectedCobertura) return;
-
-    const selectedTematica = document.getElementById('tematica').value;
-    const cobertura = tematicas[selectedTematica].coberturas.find(c => c.nombre === selectedCobertura);
-
-    if (!cobertura) return;
-
-    Papa.parse(cobertura.url, {
-        download: true,
-        header: true,
-        dynamicTyping: true,
-        complete: function(results) {
-            // Convertir los puntos a formato GeoJSON
-            const geojson = {
-                type: "FeatureCollection",
-                features: results.data.map(point => {
-                    if (point.X && point.Y) {
-                        const latLng = [point.Y, point.X];
-                        let properties = {};
-                        for (const key in point) {
-                            if (point[key] && key !== "X" && key !== "Y") {
-                                properties[key] = point[key];
-                            }
-                        }
-                        return {
-                            type: "Feature",
-                            geometry: {
-                                type: "Point",
-                                coordinates: [point.X, point.Y]
-                            },
-                            properties: properties
-                        };
-                    }
-                }).filter(Boolean)
-            };
-
-            const geojsonBlob = new Blob([JSON.stringify(geojson)], { type: "application/json" });
-            const url = URL.createObjectURL(geojsonBlob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `${selectedCobertura}.geojson`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-    });
-}
-
-// Función para descargar el archivo Excel
-function descargarExcel() {
-    const selectedCobertura = document.getElementById('cobertura').value;
-    if (!selectedCobertura) return;
-
-    const selectedTematica = document.getElementById('tematica').value;
-    const cobertura = tematicas[selectedTematica].coberturas.find(c => c.nombre === selectedCobertura);
-
-    if (!cobertura) return;
-
-    Papa.parse(cobertura.url, {
-        download: true,
-        header: true,
-        dynamicTyping: true,
-        complete: function(results) {
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.json_to_sheet(results.data);
-            XLSX.utils.book_append_sheet(wb, ws, selectedCobertura);
-            XLSX.writeFile(wb, `${selectedCobertura}.xlsx`);
-        }
-    });
-}
-
-// Cargar el visor al inicio
-cargarSelector();
-</script>
+        loadThematicData();
+    </script>
 </body>
 </html>
