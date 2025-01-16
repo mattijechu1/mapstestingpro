@@ -185,8 +185,8 @@ async function cargarCoberturas() {
                         L.circleMarker(latLng, {
                             radius: 6,
                             color: "blue",
-                            fillColor: "blue",
-                            fillOpacity: 0.5
+                            fillColor: "none",
+                            
                         })
                         .bindPopup(popupContent) // Asociar popup al círculo
                         .addTo(coverageLayer);
